@@ -22,10 +22,12 @@ export function useSupportSocket(token: string | null, events?: SupportSocketEve
       },
       onMessageCreated: (payload) => {
         setLastEvent('message:created');
+        console.debug('[mobile-socket] message received:', payload);
         events?.onMessageCreated?.(payload);
       },
       onConversationStatusChanged: (payload) => {
         setLastEvent('conversation:status_changed');
+        console.debug('[mobile-socket] status changed received:', payload);
         events?.onConversationStatusChanged?.(payload);
       },
     });

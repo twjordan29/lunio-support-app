@@ -1,18 +1,19 @@
+import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { closeConversation, completeConversation, getConversation, getConversationMessages, reopenConversation, sendMessage } from '@/src/api/supportApi';
+import { useAuth } from '@/src/auth/AuthContext';
 import { AppHeader } from '@/src/components/AppHeader';
 import { EmptyState } from '@/src/components/EmptyState';
 import { LoadingState } from '@/src/components/LoadingState';
 import { MessageBubble } from '@/src/components/MessageBubble';
-import { closeConversation, completeConversation, getConversation, getConversationMessages, reopenConversation, sendMessage } from '@/src/api/supportApi';
-import { useAuth } from '@/src/auth/AuthContext';
 import { useNotificationPreferences } from '@/src/hooks/useNotificationPreferences';
 import { useSupportSocket } from '@/src/hooks/useSupportSocket';
 import type { Conversation, ConversationStatus, SupportMessage } from '@/src/types/support';
+import { mergeUniqueMessages } from '@/src/utils/merge';
 
 export function ConversationThreadScreen() {
   const router = useRouter();
@@ -27,12 +28,15 @@ export function ConversationThreadScreen() {
   const [isSending, setIsSending] = useState(false);
   const [status, setStatus] = useState<string>('open');
   const flatListRef = useRef<FlatList>(null);
+  const pendingMessageCounter = useRef(0);
 
   useEffect(() => {
     if (!conversationId || isNaN(conversationId)) return;
     Promise.all([
       getConversation(conversationId).then(setConversation).catch(() => setConversation(null)),
-      getConversationMessages(conversationId).then(setMessages).catch(() => setMessages([])),
+      getConversationMessages(conversationId)
+        .then((messages) => setMessages((prev) => mergeUniqueMessages(prev, messages)))
+        .catch(() => setMessages([])),
     ]);
   }, [conversationId]);
 
@@ -53,13 +57,28 @@ export function ConversationThreadScreen() {
     const body = draft.trim();
     if (!body || !conversationId || isNaN(conversationId) || isSending) return;
 
+    const pendingId = `pending:${pendingMessageCounter.current + 1}`;
+    pendingMessageCounter.current += 1;
+
+    const optimisticMessage: SupportMessage = {
+      id: -pendingMessageCounter.current,
+      conversation_id: conversationId,
+      sender_type: user?.role === 'admin' || user?.role === 'support' ? 'staff' : 'user',
+      sender_id: user?.id ?? null,
+      body,
+      created_at: new Date().toISOString(),
+      local_id: pendingId,
+    };
+
+    setMessages((prev) => mergeUniqueMessages(prev, [optimisticMessage]));
+    setDraft('');
     setIsSending(true);
+
     try {
       const msg = await sendMessage(conversationId, body);
-      setMessages((prev) => [...prev, msg]);
-      setDraft('');
+      setMessages((prev) => mergeUniqueMessages(prev.filter((message) => message.local_id !== pendingId), [msg]));
     } catch {
-      // Handle error silently for now
+      setMessages((prev) => prev.filter((message) => message.local_id !== pendingId));
     } finally {
       setIsSending(false);
     }
@@ -78,7 +97,7 @@ export function ConversationThreadScreen() {
 
       // Only add if this conversation and not own message
       if (conversation_id === conversationId && senderId !== user?.id) {
-        setMessages((prev) => [...prev, message]);
+        setMessages((prev) => mergeUniqueMessages(prev, [message]));
         // Scroll to bottom
         setTimeout(() => flatListRef.current?.scrollToEnd(), 100);
 
@@ -237,7 +256,7 @@ export function ConversationThreadScreen() {
           ref={flatListRef}
           style={styles.list}
           data={messages}
-          keyExtractor={(item) => String(item.id)}
+          keyExtractor={(item) => item.local_id ?? String(item.id)}
           renderItem={({ item }) => (
             <MessageBubble
               message={item.body}

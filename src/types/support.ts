@@ -18,4 +18,5 @@ export type SupportMessage = {
   sender_id?: number | null;
   body: string;
   created_at: string;
+  local_id?: string;
 };

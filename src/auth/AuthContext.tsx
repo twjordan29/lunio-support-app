@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import { config } from '@/src/config/env';
 import { setApiAuthToken } from '@/src/api/client';
 import { clearAuthToken, getAuthToken, getUser, saveAuthToken, saveUser } from '@/src/auth/tokenStorage';
+import { setupPushNotifications, unregisterPushTokenFromLunio } from '@/src/services/pushNotifications';
 
 type User = {
   id: number;
@@ -61,8 +62,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setApiAuthToken(support_token);
       setToken(support_token);
       setUser(userData);
+
+      // Setup push notifications after login
+      try {
+        await setupPushNotifications();
+      } catch (error) {
+        console.error('Failed to setup push notifications:', error);
+        // Don't fail login if push notifications fail
+      }
     },
     logout: async () => {
+      // Unregister push token before clearing auth
+      try {
+        await unregisterPushTokenFromLunio();
+      } catch (error) {
+        console.error('Failed to unregister push token:', error);
+        // Don't fail logout if unregister fails
+      }
+
       await clearAuthToken();
       setApiAuthToken(null);
       setToken(null);

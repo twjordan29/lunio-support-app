@@ -80,6 +80,13 @@ export function SettingsScreen() {
               onValueChange={(value) => updatePreferences({ assignedOnly: value })}
             />
           </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>Push notifications</Text>
+            <Text style={styles.value}>
+              {preferences.pushNotificationsEnabled ? 'Enabled' : 'Disabled'}
+              {preferences.pushTokenRegistered ? ' (Registered)' : ' (Not registered)'}
+            </Text>
+          </View>
         </View>
 
         <View style={[styles.actions, { paddingBottom: insets.bottom + 16 }]}>

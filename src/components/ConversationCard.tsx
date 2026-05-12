@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { StatusBadge } from './StatusBadge';
 import { colors, shadow } from './theme';
+import { getConversationDisplayInfo } from '@/src/utils/conversationDisplay';
 import { formatFriendlyDate } from '@/src/utils/date';
 import type { Conversation } from '@/src/types/support';
 
@@ -15,22 +16,20 @@ interface ConversationCardProps {
 export function ConversationCard({ conversation, currentUserId, onPress }: ConversationCardProps) {
   const hasUnread = (conversation.unread_count ?? 0) > 0;
   const isMine = !!currentUserId && conversation.assigned_admin_id === currentUserId;
-  const name = conversation.customer_name || 'Guest visitor';
-  const email = conversation.customer_email || 'No email provided';
-  const snippet = conversation.subject || 'No recent message preview available yet.';
+  const { displayName, displayEmail, latestMessagePreview, updatedAt } = getConversationDisplayInfo(conversation);
 
   return (
     <Pressable style={({ pressed }) => [styles.card, pressed && styles.cardPressed]} onPress={onPress}>
       <View style={styles.topRow}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{String(name).trim().slice(0, 1).toUpperCase() || 'G'}</Text>
+          <Text style={styles.avatarText}>{String(displayName).trim().slice(0, 1).toUpperCase() || 'G'}</Text>
         </View>
         <View style={styles.identity}>
-          <Text style={styles.name} numberOfLines={1}>{name}</Text>
-          <Text style={styles.email} numberOfLines={1}>{email}</Text>
+          <Text style={styles.name} numberOfLines={1}>{displayName}</Text>
+          <Text style={styles.email} numberOfLines={1}>{displayEmail}</Text>
         </View>
         <View style={styles.metaRight}>
-          {conversation.updated_at && <Text style={styles.time}>{formatFriendlyDate(conversation.updated_at)}</Text>}
+          {updatedAt && <Text style={styles.time}>{formatFriendlyDate(updatedAt)}</Text>}
           {hasUnread && (
             <View style={styles.unreadBadge}>
               <Text style={styles.unreadText}>{conversation.unread_count}</Text>
@@ -39,7 +38,7 @@ export function ConversationCard({ conversation, currentUserId, onPress }: Conve
         </View>
       </View>
 
-      <Text style={styles.snippet} numberOfLines={2}>{snippet}</Text>
+      <Text style={styles.snippet} numberOfLines={1}>{latestMessagePreview}</Text>
 
       <View style={styles.footer}>
         <StatusBadge status={conversation.status} />

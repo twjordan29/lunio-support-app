@@ -16,8 +16,10 @@ import { colors } from '@/src/components/theme';
 import { useNotificationPreferences } from '@/src/hooks/useNotificationPreferences';
 import { useSupportSocket } from '@/src/hooks/useSupportSocket';
 import type { Conversation, ConversationStatus, SupportMessage } from '@/src/types/support';
+import { mergeConversationPreservingDisplay } from '@/src/utils/conversationDisplay';
+import { mergeUniqueConversations } from '@/src/utils/merge';
 
- type FilterType = 'all' | 'open' | 'mine' | 'completed' | 'closed';
+type FilterType = 'all' | 'open' | 'mine' | 'completed' | 'closed';
 
 export function ConversationListScreen() {
   const router = useRouter();
@@ -49,7 +51,14 @@ export function ConversationListScreen() {
       setItems((prev) =>
         prev.map((conv) =>
           conv.id === conversation_id
-            ? { ...conv, unread_count: conv.unread_count ? conv.unread_count + 1 : 1, updated_at: message.created_at, subject: message.body || conv.subject }
+            ? mergeConversationPreservingDisplay(conv, {
+                unread_count: conv.unread_count ? conv.unread_count + 1 : 1,
+                updated_at: message.created_at,
+                latest_message: message.body,
+                last_message_body: message.body,
+                last_message_preview: message.body,
+                last_message_at: message.created_at,
+              })
             : conv
         )
       );
@@ -67,7 +76,7 @@ export function ConversationListScreen() {
       setItems((prev) =>
         prev.map((conv) =>
           conv.id === conversation_id
-            ? { ...conv, status: status as ConversationStatus, updated_at: conversation.updated_at }
+            ? mergeConversationPreservingDisplay(conv, { ...conversation, status: status as ConversationStatus, updated_at: conversation.updated_at || conv.updated_at })
             : conv
         )
       );
@@ -78,7 +87,7 @@ export function ConversationListScreen() {
     if (!token) return;
     try {
       const conversations = await getConversations();
-      setItems(conversations);
+      setItems((prev) => mergeUniqueConversations(prev, conversations));
     } catch {
       setItems([]);
     }
@@ -188,7 +197,7 @@ export function ConversationListScreen() {
             conversation={item}
             currentUserId={user?.id}
             onPress={() => {
-              setItems((prev) => prev.map((conv) => conv.id === item.id ? { ...conv, unread_count: 0 } : conv));
+              setItems((prev) => prev.map((conv) => conv.id === item.id ? mergeConversationPreservingDisplay(conv, { unread_count: 0 }) : conv));
               router.push(`/conversations/${item.id}`);
             }}
           />

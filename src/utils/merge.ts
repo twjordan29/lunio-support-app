@@ -1,4 +1,5 @@
 import type { Conversation, SupportMessage } from '@/src/types/support';
+import { mergeConversationPreservingDisplay } from '@/src/utils/conversationDisplay';
 
 export function messageKey(message: SupportMessage): string {
   return message.local_id ?? `id:${message.id}`;
@@ -62,7 +63,7 @@ export function mergeUniqueConversations(existing: Conversation[], incoming: Con
   incoming.forEach((conversation) => {
     const existingIndex = indexById.get(conversation.id);
     if (existingIndex !== undefined) {
-      merged[existingIndex] = { ...merged[existingIndex], ...conversation };
+      merged[existingIndex] = mergeConversationPreservingDisplay(merged[existingIndex], conversation);
       return;
     }
 

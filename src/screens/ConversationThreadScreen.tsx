@@ -15,6 +15,7 @@ import { colors, shadow } from '@/src/components/theme';
 import { useNotificationPreferences } from '@/src/hooks/useNotificationPreferences';
 import { useSupportSocket } from '@/src/hooks/useSupportSocket';
 import type { Conversation, ConversationStatus, SupportMessage } from '@/src/types/support';
+import { getConversationDisplayInfo, mergeConversationPreservingDisplay } from '@/src/utils/conversationDisplay';
 import { mergeUniqueMessages } from '@/src/utils/merge';
 
 export function ConversationThreadScreen() {
@@ -57,8 +58,7 @@ export function ConversationThreadScreen() {
 
   const isStaff = user?.role === 'admin' || user?.role === 'support';
   const isClosed = status !== 'open';
-  const customerName = String(conversation?.customer_name || messages.find((m) => m.sender_type !== 'staff')?.sender_id || 'Guest visitor');
-  const customerEmail = conversation?.customer_email || 'No email provided';
+  const { displayName: customerName, displayEmail: customerEmail } = getConversationDisplayInfo(conversation);
 
   const onSend = async () => {
     const body = draft.trim();
@@ -114,7 +114,7 @@ export function ConversationThreadScreen() {
     onConversationStatusChanged: (payload: { conversation_id: number; status: string; conversation: Conversation }) => {
       const { conversation_id, status } = payload;
       if (conversation_id === conversationId) {
-        setConversation((prev: Conversation | null) => prev ? { ...prev, status: status as ConversationStatus } : null);
+        setConversation((prev: Conversation | null) => prev ? mergeConversationPreservingDisplay(prev, { ...payload.conversation, status: status as ConversationStatus }) : payload.conversation);
         setStatus(status);
         if (status === 'closed' || status === 'completed') {
           setNotice(status === 'closed' ? 'This conversation has been closed.' : 'This conversation has been completed.');
@@ -127,17 +127,17 @@ export function ConversationThreadScreen() {
     try {
       if (action === 'close') {
         await closeConversation(conversationId);
-        setConversation((prev) => prev ? { ...prev, status: 'closed' } : null);
+        setConversation((prev) => prev ? mergeConversationPreservingDisplay(prev, { status: 'closed' }) : null);
         setStatus('closed');
         setNotice('Conversation closed. Replies are disabled.');
       } else if (action === 'complete') {
         await completeConversation(conversationId);
-        setConversation((prev) => prev ? { ...prev, status: 'completed' } : null);
+        setConversation((prev) => prev ? mergeConversationPreservingDisplay(prev, { status: 'completed' }) : null);
         setStatus('completed');
         setNotice('Conversation completed. Replies are disabled.');
       } else {
         await reopenConversation(conversationId);
-        setConversation((prev) => prev ? { ...prev, status: 'open' } : null);
+        setConversation((prev) => prev ? mergeConversationPreservingDisplay(prev, { status: 'open' }) : null);
         setStatus('open');
         setNotice('Conversation reopened. You can reply again.');
       }

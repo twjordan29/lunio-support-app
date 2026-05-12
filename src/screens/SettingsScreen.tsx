@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/src/components/AppHeader';
 import { config } from '@/src/config/env';
@@ -8,6 +9,7 @@ import { useAuth } from '@/src/auth/AuthContext';
 
 export function SettingsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
 
   const onLogout = async () => {
@@ -53,7 +55,7 @@ export function SettingsScreen() {
           </View>
         </View>
 
-        <View style={styles.actions}>
+        <View style={[styles.actions, { paddingBottom: insets.bottom + 16 }]}>
           <Pressable style={styles.logoutButton} onPress={onLogout}>
             <Text style={styles.logoutText}>Sign Out</Text>
           </Pressable>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface AppHeaderProps {
   title: string;
@@ -8,8 +9,10 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({ title, rightAction, onBack }: AppHeaderProps) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       {onBack && (
         <Pressable style={styles.backButton} onPress={onBack}>
           <Text style={styles.backText}>‹</Text>

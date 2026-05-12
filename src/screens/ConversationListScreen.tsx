@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { BackHandler, FlatList, Pressable, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ConversationCard } from '@/src/components/ConversationCard';
 import { EmptyState } from '@/src/components/EmptyState';
@@ -14,6 +15,7 @@ type FilterType = 'all' | 'open' | 'mine' | 'completed' | 'closed';
 
 export function ConversationListScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { token } = useAuth();
   const { isConnected } = useSupportSocket(token);
   const [items, setItems] = useState<Conversation[]>([]);
@@ -82,7 +84,7 @@ export function ConversationListScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
         <Text style={styles.title}>Conversations</Text>
         <View style={styles.headerRight}>
           <Text style={styles.status}>{statusIndicator}</Text>

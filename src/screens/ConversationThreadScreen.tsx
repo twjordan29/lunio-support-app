@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/src/components/AppHeader';
 import { MessageBubble } from '@/src/components/MessageBubble';
@@ -10,6 +11,7 @@ import type { SupportMessage } from '@/src/types/support';
 
 export function ConversationThreadScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { id } = useLocalSearchParams<{ id: string }>();
   const conversationId = Number(id);
@@ -173,10 +175,10 @@ export function ConversationThreadScreen() {
               timestamp={item.created_at}
             />
           )}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 120 }]} // Extra for composer height
         />
 
-        <View style={styles.composer}>
+        <View style={[styles.composer, { paddingBottom: insets.bottom }]}>
           <TextInput
             style={styles.input}
             placeholder="Type your message..."

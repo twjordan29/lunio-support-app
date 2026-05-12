@@ -93,6 +93,11 @@ export function ConversationThreadScreen() {
 
       if (conversation_id === conversationId) {
         setConversation((prev: Conversation | null) => prev ? { ...prev, status: status as ConversationStatus } : null);
+        if (status === 'closed') {
+          Alert.alert('Conversation Closed', 'This conversation has been closed.', [
+            { text: 'OK', onPress: () => router.back() }
+          ]);
+        }
       }
     },
   });

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "964527004563",
+    "project_id": "lunio-support-app",
+    "storage_bucket": "lunio-support-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:964527004563:android:0e7756787cb8a713452666",
+        "android_client_info": {
+          "package_name": "com.twjordan29.luniosupportapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDUcIX9SuCMmgO5LS9YApHsnH2rmfoIeqU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

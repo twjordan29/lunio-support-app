@@ -155,7 +155,15 @@ export function ConversationListScreen() {
         renderItem={({ item }) => (
           <ConversationCard
             conversation={item}
-            onPress={() => router.push(`/conversations/${item.id}`)}
+            onPress={() => {
+              // Mark as read locally
+              setItems((prev) =>
+                prev.map((conv) =>
+                  conv.id === item.id ? { ...conv, unread_count: 0 } : conv
+                )
+              );
+              router.push(`/conversations/${item.id}`);
+            }}
           />
         )}
         refreshControl={

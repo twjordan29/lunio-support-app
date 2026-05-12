@@ -20,7 +20,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.twjordan29.luniosupportapp"
+      "package": "com.twjordan29.luniosupportapp",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "output": "static",

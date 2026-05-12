@@ -5,9 +5,10 @@ import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/src/components/AppHeader';
+import { EmptyState } from '@/src/components/EmptyState';
+import { LoadingState } from '@/src/components/LoadingState';
 import { MessageBubble } from '@/src/components/MessageBubble';
-import { Toast } from '@/src/components/Toast';
-import { closeConversation, completeConversation, getConversationMessages, reopenConversation, sendMessage } from '@/src/api/supportApi';
+import { closeConversation, completeConversation, getConversation, getConversationMessages, reopenConversation, sendMessage } from '@/src/api/supportApi';
 import { useAuth } from '@/src/auth/AuthContext';
 import { useNotificationPreferences } from '@/src/hooks/useNotificationPreferences';
 import { useSupportSocket } from '@/src/hooks/useSupportSocket';
@@ -16,19 +17,22 @@ import type { SupportMessage } from '@/src/types/support';
 export function ConversationThreadScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const { preferences } = useNotificationPreferences();
   const { id } = useLocalSearchParams<{ id: string }>();
   const conversationId = Number(id);
+  const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [draft, setDraft] = useState('');
   const [isSending, setIsSending] = useState(false);
-  const [status, setStatus] = useState<string>('open'); // Assume open, or fetch
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
-    if (!conversationId) return;
-    getConversationMessages(conversationId).then(setMessages).catch(() => setMessages([]));
+    if (!conversationId || isNaN(conversationId)) return;
+    Promise.all([
+      getConversation(conversationId).then(setConversation).catch(() => setConversation(null)),
+      getConversationMessages(conversationId).then(setMessages).catch(() => setMessages([])),
+    ]);
   }, [conversationId]);
 
   useEffect(() => {
@@ -40,7 +44,7 @@ export function ConversationThreadScreen() {
 
   const onSend = async () => {
     const body = draft.trim();
-    if (!body || !conversationId || isSending) return;
+    if (!body || !conversationId || isNaN(conversationId) || isSending) return;
 
     setIsSending(true);
     try {
@@ -73,7 +77,7 @@ export function ConversationThreadScreen() {
     },
   });
 
-  const customerName = messages.find(m => m.sender_type !== 'staff')?.sender_id || 'Customer';
+  const customerName = conversation?.customer_name || messages.find(m => m.sender_type !== 'staff')?.sender_id || 'Customer';
 
   const handleClose = () => {
     Alert.alert(
@@ -87,11 +91,12 @@ export function ConversationThreadScreen() {
           onPress: async () => {
             try {
               await closeConversation(conversationId);
-              setStatus('closed');
+              setConversation(prev => prev ? { ...prev, status: 'closed' } : null);
               Alert.alert('Success', 'Conversation closed.');
               router.back(); // Go back to list
-            } catch {
-              Alert.alert('Error', 'Failed to close conversation.');
+            } catch (error: any) {
+              const message = error?.response?.data?.error?.message || 'Failed to close conversation.';
+              Alert.alert('Error', message);
             }
           },
         },
@@ -110,11 +115,12 @@ export function ConversationThreadScreen() {
           onPress: async () => {
             try {
               await completeConversation(conversationId);
-              setStatus('resolved');
-              Alert.alert('Success', 'Conversation marked as resolved.');
+              setConversation(prev => prev ? { ...prev, status: 'completed' } : null);
+              Alert.alert('Success', 'Conversation marked as completed.');
               router.back();
-            } catch {
-              Alert.alert('Error', 'Failed to complete conversation.');
+            } catch (error: any) {
+              const message = error?.response?.data?.error?.message || 'Failed to complete conversation.';
+              Alert.alert('Error', message);
             }
           },
         },
@@ -133,10 +139,11 @@ export function ConversationThreadScreen() {
           onPress: async () => {
             try {
               await reopenConversation(conversationId);
-              setStatus('open');
+              setConversation(prev => prev ? { ...prev, status: 'open' } : null);
               Alert.alert('Success', 'Conversation reopened.');
-            } catch {
-              Alert.alert('Error', 'Failed to reopen conversation.');
+            } catch (error: any) {
+              const message = error?.response?.data?.error?.message || 'Failed to reopen conversation.';
+              Alert.alert('Error', message);
             }
           },
         },
@@ -150,10 +157,26 @@ export function ConversationThreadScreen() {
     Alert.alert('Not Implemented', 'Conversation deletion is not yet supported. Add DELETE endpoint to support-api first.');
   };
 
+  if (!user) {
+    return <LoadingState message="Loading conversation..." />;
+  }
+
+  if (isNaN(conversationId) || conversationId <= 0) {
+    return (
+      <EmptyState
+        title="Invalid Conversation"
+        message="The conversation ID is invalid."
+        actionLabel="Go Back"
+        onAction={() => router.back()}
+      />
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <AppHeader
-        title={`Chat with ${customerName}`}
+        title={conversation?.subject || `Chat with ${customerName}`}
+        subtitle={conversation?.customer_email || undefined}
         onBack={() => router.back()}
       />
 
@@ -221,12 +244,6 @@ export function ConversationThreadScreen() {
           </Pressable>
         </View>
       </KeyboardAvoidingView>
-
-      <Toast
-        message={toastMessage || ''}
-        visible={showToast}
-        onHide={() => setShowToast(false)}
-      />
     </SafeAreaView>
   );
 }

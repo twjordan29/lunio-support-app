@@ -4,11 +4,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface AppHeaderProps {
   title: string;
+  subtitle?: string;
   rightAction?: React.ReactNode;
   onBack?: () => void;
 }
 
-export function AppHeader({ title, rightAction, onBack }: AppHeaderProps) {
+export function AppHeader({ title, subtitle, rightAction, onBack }: AppHeaderProps) {
   const insets = useSafeAreaInsets();
 
   return (
@@ -18,9 +19,16 @@ export function AppHeader({ title, rightAction, onBack }: AppHeaderProps) {
           <Text style={styles.backText}>‹</Text>
         </Pressable>
       )}
-      <Text style={styles.title} numberOfLines={1}>
-        {title}
-      </Text>
+      <View style={styles.titleContainer}>
+        <Text style={styles.title} numberOfLines={1}>
+          {title}
+        </Text>
+        {subtitle && (
+          <Text style={styles.subtitle} numberOfLines={1}>
+            {subtitle}
+          </Text>
+        )}
+      </View>
       {rightAction && <View style={styles.right}>{rightAction}</View>}
     </View>
   );
@@ -49,12 +57,21 @@ const styles = StyleSheet.create({
     color: '#334155',
     fontWeight: 'bold',
   },
-  title: {
+  titleContainer: {
     flex: 1,
+    alignItems: 'center',
+  },
+  title: {
     fontSize: 18,
     fontWeight: '700',
     color: '#0f172a',
     textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#64748b',
+    textAlign: 'center',
+    marginTop: 2,
   },
   right: {
     width: 40,

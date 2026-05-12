@@ -13,6 +13,11 @@ export async function getConversationMessages(conversationId: number): Promise<S
   return data.data.messages ?? [];
 }
 
+export async function getConversation(conversationId: number): Promise<Conversation> {
+  const { data } = await apiClient.get<ApiResponse<{ conversation: Conversation }>>(`/conversations/${conversationId}`);
+  return data.data.conversation;
+}
+
 export async function sendMessage(conversationId: number, body: string): Promise<SupportMessage> {
   const { data } = await apiClient.post<ApiResponse<{ message: SupportMessage }>>(`/conversations/${conversationId}/messages`, { body });
   return data.data.message;
@@ -27,7 +32,7 @@ async function updateConversationStatus(conversationId: number, status: string):
 }
 
 export async function completeConversation(conversationId: number): Promise<void> {
-  await updateConversationStatus(conversationId, 'resolved');
+  await updateConversationStatus(conversationId, 'completed');
 }
 
 export async function closeConversation(conversationId: number): Promise<void> {

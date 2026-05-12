@@ -100,7 +100,7 @@ export function SettingsScreen() {
           {preferences.pushRegistrationError && (
             <Text style={styles.infoText}>
               {preferences.pushRegistrationError.includes('FirebaseApp') || preferences.pushRegistrationError.includes('FCM')
-                ? 'Android push requires Firebase/FCM credentials in the development build.'
+                ? 'Firebase/FCM config is required. Add google-services.json and rebuild the development app.'
                 : `Registration failed: ${preferences.pushRegistrationError}`}
             </Text>
           )}

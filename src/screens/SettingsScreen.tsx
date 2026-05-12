@@ -7,11 +7,20 @@ import { useAuth } from '@/src/auth/AuthContext';
 
 export function SettingsScreen() {
   const router = useRouter();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Settings</Text>
+      {user && (
+        <>
+          <Text style={styles.section}>Account</Text>
+          <Text style={styles.item}>Name: {user.name}</Text>
+          <Text style={styles.item}>Email: {user.email}</Text>
+          <Text style={styles.item}>Role: {user.role}</Text>
+        </>
+      )}
+      <Text style={styles.section}>Services</Text>
       <Text style={styles.item}>Lunio: {config.lunioWebUrl}</Text>
       <Text style={styles.item}>Support API: {config.supportApiUrl}</Text>
       <Pressable
@@ -26,4 +35,11 @@ export function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({ container: { flex: 1, padding: 20, backgroundColor: '#f8fafc' }, title: { fontSize: 24, fontWeight: '700', marginTop: 48, marginBottom: 24 }, item: { fontSize: 14, color: '#334155', marginBottom: 10 }, button: { marginTop: 24, borderRadius: 12, backgroundColor: '#ef4444', padding: 14, alignItems: 'center' }, buttonText: { color: '#fff', fontWeight: '700' } });
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: 20, backgroundColor: '#f8fafc' },
+  title: { fontSize: 24, fontWeight: '700', marginTop: 48, marginBottom: 24 },
+  section: { fontSize: 18, fontWeight: '600', marginTop: 20, marginBottom: 10, color: '#0f172a' },
+  item: { fontSize: 14, color: '#334155', marginBottom: 10 },
+  button: { marginTop: 24, borderRadius: 12, backgroundColor: '#ef4444', padding: 14, alignItems: 'center' },
+  buttonText: { color: '#fff', fontWeight: '700' }
+});

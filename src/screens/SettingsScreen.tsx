@@ -1,16 +1,18 @@
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, SafeAreaView, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/src/components/AppHeader';
 import { config } from '@/src/config/env';
 import { useAuth } from '@/src/auth/AuthContext';
+import { useNotificationPreferences } from '@/src/hooks/useNotificationPreferences';
 
 export function SettingsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
+  const { preferences, updatePreferences } = useNotificationPreferences();
 
   const onLogout = async () => {
     await logout();
@@ -52,6 +54,31 @@ export function SettingsScreen() {
           <View style={styles.infoRow}>
             <Text style={styles.label}>Support API</Text>
             <Text style={styles.value}>{config.supportApiUrl}</Text>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Notifications</Text>
+          <View style={styles.toggleRow}>
+            <Text style={styles.toggleLabel}>In-app banners</Text>
+            <Switch
+              value={preferences.bannersEnabled}
+              onValueChange={(value) => updatePreferences({ bannersEnabled: value })}
+            />
+          </View>
+          <View style={styles.toggleRow}>
+            <Text style={styles.toggleLabel}>Vibration</Text>
+            <Switch
+              value={preferences.vibrationEnabled}
+              onValueChange={(value) => updatePreferences({ vibrationEnabled: value })}
+            />
+          </View>
+          <View style={styles.toggleRow}>
+            <Text style={styles.toggleLabel}>Assigned conversations only</Text>
+            <Switch
+              value={preferences.assignedOnly}
+              onValueChange={(value) => updatePreferences({ assignedOnly: value })}
+            />
           </View>
         </View>
 
@@ -109,6 +136,16 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     flex: 1,
     textAlign: 'right',
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  toggleLabel: {
+    fontSize: 16,
+    color: '#0f172a',
   },
   actions: {
     marginTop: 32,

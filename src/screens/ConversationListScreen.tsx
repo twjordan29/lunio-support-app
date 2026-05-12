@@ -10,6 +10,7 @@ import { LoadingState } from '@/src/components/LoadingState';
 import { Toast } from '@/src/components/Toast';
 import { getConversations } from '@/src/api/supportApi';
 import { useAuth } from '@/src/auth/AuthContext';
+import { useNotificationPreferences } from '@/src/hooks/useNotificationPreferences';
 import { useSupportSocket } from '@/src/hooks/useSupportSocket';
 import type { Conversation, SupportMessage } from '@/src/types/support';
 
@@ -18,7 +19,8 @@ type FilterType = 'all' | 'open' | 'mine' | 'completed' | 'closed';
 export function ConversationListScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const { preferences } = useNotificationPreferences();
   const { isConnected } = useSupportSocket(token, {
     onMessageCreated: (payload: { conversation_id: number; message: SupportMessage }) => {
       const { conversation_id, message } = payload;
@@ -26,6 +28,10 @@ export function ConversationListScreen() {
 
       // Don't alert for own messages
       if (senderId === user?.id) return;
+
+      // Check assigned only preference
+      const conversation = items.find((c) => c.id === conversation_id);
+      if (preferences.assignedOnly && !conversation?.assigned_admin_id) return;
 
       // Update conversation list
       setItems((prev) =>
@@ -40,12 +46,16 @@ export function ConversationListScreen() {
         )
       );
 
-      // Show toast
-      setToastMessage(`New message from ${message.sender_type === 'guest' ? 'guest' : 'customer'}`);
-      setShowToast(true);
+      // Show toast if enabled
+      if (preferences.bannersEnabled) {
+        setToastMessage(`New message from ${message.sender_type === 'guest' ? 'guest' : 'customer'}`);
+        setShowToast(true);
+      }
 
-      // Vibrate
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      // Vibrate if enabled
+      if (preferences.vibrationEnabled) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
     },
   });
   const [items, setItems] = useState<Conversation[]>([]);

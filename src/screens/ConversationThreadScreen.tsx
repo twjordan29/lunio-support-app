@@ -9,12 +9,14 @@ import { MessageBubble } from '@/src/components/MessageBubble';
 import { Toast } from '@/src/components/Toast';
 import { closeConversation, completeConversation, getConversationMessages, reopenConversation, sendMessage } from '@/src/api/supportApi';
 import { useAuth } from '@/src/auth/AuthContext';
+import { useNotificationPreferences } from '@/src/hooks/useNotificationPreferences';
 import type { SupportMessage } from '@/src/types/support';
 
 export function ConversationThreadScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const { preferences } = useNotificationPreferences();
   const { id } = useLocalSearchParams<{ id: string }>();
   const conversationId = Number(id);
   const [messages, setMessages] = useState<SupportMessage[]>([]);
@@ -56,14 +58,16 @@ export function ConversationThreadScreen() {
       const { conversation_id, message } = payload;
       const senderId = message.sender_id;
 
-      // Only add if this conversation
+      // Only add if this conversation and not own message
       if (conversation_id === conversationId && senderId !== user?.id) {
         setMessages((prev) => [...prev, message]);
         // Scroll to bottom
         setTimeout(() => flatListRef.current?.scrollToEnd(), 100);
 
-        // Vibrate
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        // Vibrate if enabled
+        if (preferences.vibrationEnabled) {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
       }
     },
   });

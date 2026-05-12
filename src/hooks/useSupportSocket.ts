@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Socket } from 'socket.io-client';
 
 import { createSupportSocket } from '@/src/api/supportSocket';
@@ -14,30 +14,35 @@ export type SupportSocketEvents = {
 export function useSupportSocket(token: string | null, events?: SupportSocketEvents) {
   const [isConnected, setIsConnected] = useState(false);
   const [lastEvent, setLastEvent] = useState<string | null>(null);
+  const eventsRef = useRef<SupportSocketEvents | undefined>(events);
+
+  useEffect(() => {
+    eventsRef.current = events;
+  }, [events]);
 
   const socket = useMemo<Socket | null>(() => {
     if (!token) return null;
     return createSupportSocket(token, {
       onConversationUpdated: (payload) => {
         setLastEvent('conversation:updated');
-        events?.onConversationUpdated?.(payload);
+        eventsRef.current?.onConversationUpdated?.(payload);
       },
       onMessageCreated: (payload) => {
         setLastEvent('message:created');
         console.debug('[mobile-socket] message received:', payload);
-        events?.onMessageCreated?.(payload);
+        eventsRef.current?.onMessageCreated?.(payload);
       },
       onConversationStatusChanged: (payload) => {
         setLastEvent('conversation:status_changed');
         console.debug('[mobile-socket] status changed received:', payload);
-        events?.onConversationStatusChanged?.(payload);
+        eventsRef.current?.onConversationStatusChanged?.(payload);
       },
       onConversationRead: (payload) => {
         setLastEvent('conversation:read');
-        events?.onConversationRead?.(payload);
+        eventsRef.current?.onConversationRead?.(payload);
       },
-    }, events?.onAuthError);
-  }, [token, events]);
+    }, () => eventsRef.current?.onAuthError?.());
+  }, [token]);
 
   useEffect(() => {
     if (!socket) {

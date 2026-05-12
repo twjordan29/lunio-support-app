@@ -1,5 +1,7 @@
 import type { Conversation } from '@/src/types/support';
 
+const SUPPORT_APP_DEBUG = false;
+
 const cleanString = (value: unknown): string | null => {
   if (typeof value !== 'string' && typeof value !== 'number') return null;
   const cleaned = String(value).trim();
@@ -15,18 +17,28 @@ const firstString = (...values: unknown[]): string | null => {
 };
 
 export function getConversationDisplayInfo(conversation: Conversation | null | undefined) {
+  const nameCandidates: [keyof Conversation, unknown][] = [
+    ['guest_name', conversation?.guest_name],
+    ['customer_name', conversation?.customer_name],
+    ['visitor_name', conversation?.visitor_name],
+    ['contact_name', conversation?.contact_name],
+    ['name', conversation?.name],
+  ];
+  const emailCandidates: [keyof Conversation, unknown][] = [
+    ['guest_email', conversation?.guest_email],
+    ['customer_email', conversation?.customer_email],
+    ['visitor_email', conversation?.visitor_email],
+    ['contact_email', conversation?.contact_email],
+    ['email', conversation?.email],
+  ];
+  const nameSource = nameCandidates.find(([, value]) => cleanString(value))?.[0] || 'fallback';
+  const emailSource = emailCandidates.find(([, value]) => cleanString(value))?.[0] || 'fallback';
   const displayName = firstString(
-    conversation?.guest_name,
-    conversation?.customer_name,
-    conversation?.visitor_name,
-    conversation?.name
+    ...nameCandidates.map(([, value]) => value)
   ) || 'Guest visitor';
 
   const displayEmail = firstString(
-    conversation?.guest_email,
-    conversation?.customer_email,
-    conversation?.visitor_email,
-    conversation?.email
+    ...emailCandidates.map(([, value]) => value)
   ) || 'No email provided';
 
   const latestMessagePreview = firstString(
@@ -47,9 +59,21 @@ export function getConversationDisplayInfo(conversation: Conversation | null | u
     conversation?.updated_at
   ) || undefined;
 
+  if (SUPPORT_APP_DEBUG) {
+    console.debug('[support-app] conversation display info', {
+      conversation_id: conversation?.id || null,
+      displayNameSource: nameSource,
+      displayEmailSource: emailSource,
+      displayName,
+      displayEmail,
+    });
+  }
+
   return {
     displayName,
     displayEmail,
+    displayNameSource: nameSource,
+    displayEmailSource: emailSource,
     latestMessagePreview,
     status: conversation?.status || 'open',
     updatedAt,
@@ -66,6 +90,8 @@ export function mergeConversationPreservingDisplay(existing: Conversation, incom
     customer_email: incoming.customer_email ?? existing.customer_email,
     visitor_name: incoming.visitor_name ?? existing.visitor_name,
     visitor_email: incoming.visitor_email ?? existing.visitor_email,
+    contact_name: incoming.contact_name ?? existing.contact_name,
+    contact_email: incoming.contact_email ?? existing.contact_email,
     name: incoming.name ?? existing.name,
     email: incoming.email ?? existing.email,
     latest_message: incoming.latest_message ?? existing.latest_message,

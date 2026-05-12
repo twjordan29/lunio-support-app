@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -18,14 +18,25 @@ import type { Conversation, ConversationStatus, SupportMessage } from '@/src/typ
 import { getConversationDisplayInfo, mergeConversationPreservingDisplay } from '@/src/utils/conversationDisplay';
 import { mergeUniqueMessages } from '@/src/utils/merge';
 
+const SUPPORT_APP_DEBUG = false;
+
 export function ConversationThreadScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user, token, logout } = useAuth();
   const { preferences } = useNotificationPreferences();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, conversation: conversationParam } = useLocalSearchParams<{ id: string; conversation?: string }>();
   const conversationId = Number(id);
-  const [conversation, setConversation] = useState<Conversation | null>(null);
+  const initialConversation = useMemo(() => {
+    if (!conversationParam) return null;
+    try {
+      const raw = Array.isArray(conversationParam) ? conversationParam[0] : conversationParam;
+      return JSON.parse(raw) as Conversation;
+    } catch {
+      return null;
+    }
+  }, [conversationParam]);
+  const [conversation, setConversation] = useState<Conversation | null>(initialConversation);
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [draft, setDraft] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -37,7 +48,9 @@ export function ConversationThreadScreen() {
   useEffect(() => {
     if (!conversationId || isNaN(conversationId)) return;
     Promise.all([
-      getConversation(conversationId).then(setConversation).catch(() => setConversation(null)),
+      getConversation(conversationId)
+        .then((fetched) => setConversation((prev) => prev ? mergeConversationPreservingDisplay(prev, fetched) : fetched))
+        .catch(() => setConversation((prev) => prev)),
       getConversationMessages(conversationId)
         .then((messages) => setMessages((prev) => mergeUniqueMessages(prev, messages)))
         .catch(() => setMessages([])),
@@ -59,7 +72,18 @@ export function ConversationThreadScreen() {
 
   const isStaff = user?.role === 'admin' || user?.role === 'support';
   const isClosed = status !== 'open';
-  const { displayName: customerName, displayEmail: customerEmail } = getConversationDisplayInfo(conversation);
+  const { displayName: customerName, displayEmail: customerEmail, displayNameSource, displayEmailSource } = getConversationDisplayInfo(conversation);
+
+  useEffect(() => {
+    if (!SUPPORT_APP_DEBUG) return;
+    console.debug('[support-app] thread header display', {
+      conversation_id: conversationId,
+      displayNameSource,
+      displayEmailSource,
+      displayName: customerName,
+      displayEmail: customerEmail,
+    });
+  }, [conversationId, customerEmail, customerName, displayEmailSource, displayNameSource]);
 
   const onSend = async () => {
     const body = draft.trim();

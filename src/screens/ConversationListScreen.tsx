@@ -20,6 +20,10 @@ import { applyConversationEvent, applyMessageEventToConversation, getActiveUnrea
 import { mergeUniqueConversations } from '@/src/utils/merge';
 
 type FilterType = 'all' | 'open' | 'mine' | 'completed' | 'closed';
+const SUPPORT_APP_DEBUG = false;
+
+const hasGuestName = (conversation?: Conversation | null) => !!(conversation?.guest_name || conversation?.customer_name || conversation?.visitor_name || conversation?.contact_name || conversation?.name);
+const hasGuestEmail = (conversation?: Conversation | null) => !!(conversation?.guest_email || conversation?.customer_email || conversation?.visitor_email || conversation?.contact_email || conversation?.email);
 
 export function ConversationListScreen() {
   const router = useRouter();
@@ -44,6 +48,15 @@ export function ConversationListScreen() {
     setItems((prev) => {
       const conversation = prev.find((c) => c.id === payload.conversation_id);
       if (preferences.assignedOnly && !conversation?.assigned_admin_id) return prev;
+      if (SUPPORT_APP_DEBUG) {
+        console.debug('[support-app] socket event received', {
+          event: 'message:new',
+          conversation_id: payload.conversation_id,
+          inbox_updated: true,
+          has_guest_name: hasGuestName(conversation),
+          has_guest_email: hasGuestEmail(conversation),
+        });
+      }
       return applyMessageEventToConversation(prev, payload, user?.id);
     });
 
@@ -57,6 +70,15 @@ export function ConversationListScreen() {
   }, [preferences.assignedOnly, preferences.bannersEnabled, preferences.vibrationEnabled, user?.id]);
 
   const handleConversationUpdate = useCallback((payload: { conversation_id?: number; status?: string; conversation?: Conversation }) => {
+    if (SUPPORT_APP_DEBUG) {
+      console.debug('[support-app] socket event received', {
+        event: 'conversation:updated',
+        conversation_id: payload.conversation_id || payload.conversation?.id || null,
+        inbox_updated: true,
+        has_guest_name: hasGuestName(payload.conversation),
+        has_guest_email: hasGuestEmail(payload.conversation),
+      });
+    }
     setItems((prev) => applyConversationEvent(prev, payload));
   }, []);
 
@@ -76,6 +98,15 @@ export function ConversationListScreen() {
     onConversationUpdated: handleConversationUpdate,
     onMessageCreated: handleIncomingMessage,
     onConversationStatusChanged: (payload: { conversation_id: number; status: string; conversation: Conversation }) => {
+      if (SUPPORT_APP_DEBUG) {
+        console.debug('[support-app] socket event received', {
+          event: 'conversation:status_changed',
+          conversation_id: payload.conversation_id,
+          inbox_updated: true,
+          has_guest_name: hasGuestName(payload.conversation),
+          has_guest_email: hasGuestEmail(payload.conversation),
+        });
+      }
       handleConversationUpdate({ ...payload, conversation: { ...payload.conversation, status: payload.status as ConversationStatus } });
     },
     onConversationRead: handleConversationRead,
@@ -197,7 +228,7 @@ export function ConversationListScreen() {
             currentUserId={user?.id}
             onPress={() => {
               setItems((prev) => markConversationReadLocally(prev, item.id));
-              router.push(`/conversations/${item.id}`);
+              router.push({ pathname: '/conversations/[id]', params: { id: String(item.id), conversation: JSON.stringify(item) } });
             }}
           />
         )}

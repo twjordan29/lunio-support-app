@@ -8,6 +8,8 @@ export type Conversation = {
   customer_email?: string | null;
   visitor_name?: string | null;
   visitor_email?: string | null;
+  contact_name?: string | null;
+  contact_email?: string | null;
   name?: string | null;
   email?: string | null;
   subject?: string | null;

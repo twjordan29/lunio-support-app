@@ -27,6 +27,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-secure-store",
       [
         "expo-splash-screen",
         {
@@ -40,6 +41,10 @@
         }
       ]
     ],
+    "extra": {
+      "LUNIO_WEB_URL": "https://lunio.ca",
+      "SUPPORT_API_URL": "https://support-api.lunio.ca"
+    },
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true

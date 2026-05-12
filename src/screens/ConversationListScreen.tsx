@@ -12,7 +12,7 @@ import { getConversations } from '@/src/api/supportApi';
 import { useAuth } from '@/src/auth/AuthContext';
 import { useNotificationPreferences } from '@/src/hooks/useNotificationPreferences';
 import { useSupportSocket } from '@/src/hooks/useSupportSocket';
-import type { Conversation, SupportMessage } from '@/src/types/support';
+import type { Conversation, ConversationStatus, SupportMessage } from '@/src/types/support';
 
 type FilterType = 'all' | 'open' | 'mine' | 'completed' | 'closed';
 
@@ -57,6 +57,22 @@ export function ConversationListScreen() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     },
+    onConversationStatusChanged: (payload: { conversation_id: number; status: string; conversation: Conversation }) => {
+      const { conversation_id, status, conversation } = payload;
+
+      // Update conversation status in list
+      setItems((prev) =>
+        prev.map((conv) =>
+          conv.id === conversation_id
+            ? {
+                ...conv,
+                status: status as ConversationStatus,
+                updated_at: conversation.updated_at,
+              }
+            : conv
+        )
+      );
+    },
   });
   const [items, setItems] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -93,9 +109,9 @@ export function ConversationListScreen() {
         case 'open':
           return item.status === 'open';
         case 'mine':
-          return item.assigned_admin_id !== null;
+          return item.assigned_admin_id !== null && item.status === 'open';
         case 'completed':
-          return item.status === 'resolved';
+          return item.status === 'completed';
         case 'closed':
           return item.status === 'closed';
         default:

@@ -12,7 +12,7 @@ import { closeConversation, completeConversation, getConversation, getConversati
 import { useAuth } from '@/src/auth/AuthContext';
 import { useNotificationPreferences } from '@/src/hooks/useNotificationPreferences';
 import { useSupportSocket } from '@/src/hooks/useSupportSocket';
-import type { Conversation, SupportMessage } from '@/src/types/support';
+import type { Conversation, ConversationStatus, SupportMessage } from '@/src/types/support';
 
 export function ConversationThreadScreen() {
   const router = useRouter();
@@ -25,6 +25,7 @@ export function ConversationThreadScreen() {
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [draft, setDraft] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [status, setStatus] = useState<string>('open');
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
@@ -34,6 +35,12 @@ export function ConversationThreadScreen() {
       getConversationMessages(conversationId).then(setMessages).catch(() => setMessages([])),
     ]);
   }, [conversationId]);
+
+  useEffect(() => {
+    if (conversation?.status) {
+      setStatus(conversation.status);
+    }
+  }, [conversation?.status]);
 
   useEffect(() => {
     // Scroll to bottom when messages change
@@ -73,6 +80,13 @@ export function ConversationThreadScreen() {
         if (preferences.vibrationEnabled) {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }
+      }
+    },
+    onConversationStatusChanged: (payload: { conversation_id: number; status: string; conversation: Conversation }) => {
+      const { conversation_id, status } = payload;
+
+      if (conversation_id === conversationId) {
+        setConversation((prev: Conversation | null) => prev ? { ...prev, status: status as ConversationStatus } : null);
       }
     },
   });
@@ -264,27 +278,29 @@ const styles = StyleSheet.create({
   composer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    padding: 16,
+    padding: 20,
     backgroundColor: '#ffffff',
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
   },
   input: {
     flex: 1,
-    backgroundColor: '#f1f5f9',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    backgroundColor: '#f8fafc',
+    borderRadius: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
     marginRight: 12,
     fontSize: 16,
     color: '#0f172a',
     maxHeight: 100,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
   sendButton: {
     backgroundColor: '#2563eb',
-    borderRadius: 20,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    borderRadius: 24,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
     justifyContent: 'center',
   },
   sendButtonDisabled: {

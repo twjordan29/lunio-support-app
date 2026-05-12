@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { StatusBadge } from './StatusBadge';
+import { formatFriendlyDate } from '@/src/utils/date';
 import type { Conversation } from '@/src/types/support';
 
 interface ConversationCardProps {
@@ -36,7 +37,7 @@ export function ConversationCard({ conversation, onPress }: ConversationCardProp
         )}
         {conversation.updated_at && (
           <Text style={styles.time}>
-            {new Date(conversation.updated_at).toLocaleDateString()}
+            {formatFriendlyDate(conversation.updated_at)}
           </Text>
         )}
       </View>
@@ -47,38 +48,41 @@ export function ConversationCard({ conversation, onPress }: ConversationCardProp
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 16,
+    padding: 20,
     marginHorizontal: 16,
-    marginVertical: 8,
+    marginVertical: 6,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   name: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 17,
+    fontWeight: '600',
     color: '#0f172a',
     flex: 1,
     marginRight: 8,
   },
   email: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#64748b',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   subject: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#475569',
-    marginBottom: 8,
+    marginBottom: 12,
+    lineHeight: 20,
   },
   footer: {
     flexDirection: 'row',
@@ -87,20 +91,21 @@ const styles = StyleSheet.create({
   },
   unreadBadge: {
     backgroundColor: '#ef4444',
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: 8,
   },
   unreadText: {
     color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '600',
   },
   time: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#94a3b8',
+    fontWeight: '500',
   },
 });

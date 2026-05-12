@@ -1,6 +1,8 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { formatFriendlyDate } from '@/src/utils/date';
+
 interface MessageBubbleProps {
   message: string;
   isFromUser: boolean;
@@ -16,7 +18,7 @@ export function MessageBubble({ message, isFromUser, timestamp }: MessageBubbleP
         </Text>
       </View>
       <Text style={[styles.timestamp, isFromUser ? styles.userTimestamp : styles.supportTimestamp]}>
-        {new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        {formatFriendlyDate(timestamp)}
       </Text>
     </View>
   );

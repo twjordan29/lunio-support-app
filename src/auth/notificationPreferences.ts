@@ -8,6 +8,8 @@ export type NotificationPreferences = {
   assignedOnly: boolean;
   pushNotificationsEnabled: boolean;
   pushTokenRegistered: boolean;
+  isExpoGo: boolean;
+  pushRegistrationError: string | null;
 };
 
 export const DEFAULT_PREFERENCES: NotificationPreferences = {
@@ -16,6 +18,8 @@ export const DEFAULT_PREFERENCES: NotificationPreferences = {
   assignedOnly: false,
   pushNotificationsEnabled: false,
   pushTokenRegistered: false,
+  isExpoGo: false,
+  pushRegistrationError: null,
 };
 
 export async function saveNotificationPreferences(prefs: NotificationPreferences): Promise<void> {

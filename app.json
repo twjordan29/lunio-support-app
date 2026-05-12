@@ -19,7 +19,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.twjordan29.luniosupportapp"
     },
     "web": {
       "output": "static",
@@ -44,7 +45,11 @@
     ],
     "extra": {
       "LUNIO_WEB_URL": "https://lunio.ca",
-      "SUPPORT_API_URL": "https://support-api.lunio.ca"
+      "SUPPORT_API_URL": "https://support-api.lunio.ca",
+      "router": {},
+      "eas": {
+        "projectId": "c63d6dea-1b3d-4e73-a04e-6fdc1499e56a"
+      }
     },
     "experiments": {
       "typedRoutes": true,

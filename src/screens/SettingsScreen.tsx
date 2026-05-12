@@ -83,10 +83,27 @@ export function SettingsScreen() {
           <View style={styles.infoRow}>
             <Text style={styles.label}>Push notifications</Text>
             <Text style={styles.value}>
-              {preferences.pushNotificationsEnabled ? 'Enabled' : 'Disabled'}
-              {preferences.pushTokenRegistered ? ' (Registered)' : ' (Not registered)'}
+              {preferences.isExpoGo
+                ? 'Requires development build on Android'
+                : preferences.pushNotificationsEnabled && preferences.pushTokenRegistered
+                  ? 'Enabled (Registered)'
+                  : preferences.pushNotificationsEnabled
+                    ? 'Enabled (Not registered)'
+                    : 'Disabled'}
             </Text>
           </View>
+          {preferences.isExpoGo && (
+            <Text style={styles.infoText}>
+              Push notifications require a development build on Android. Expo Go can only test the app UI.
+            </Text>
+          )}
+          {preferences.pushRegistrationError && (
+            <Text style={styles.infoText}>
+              {preferences.pushRegistrationError.includes('FirebaseApp') || preferences.pushRegistrationError.includes('FCM')
+                ? 'Android push requires Firebase/FCM credentials in the development build.'
+                : `Registration failed: ${preferences.pushRegistrationError}`}
+            </Text>
+          )}
         </View>
 
         <View style={[styles.actions, { paddingBottom: insets.bottom + 16 }]}>
@@ -143,6 +160,13 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     flex: 1,
     textAlign: 'right',
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#64748b',
+    marginTop: 4,
+    marginBottom: 16,
+    lineHeight: 20,
   },
   toggleRow: {
     flexDirection: 'row',

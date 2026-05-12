@@ -10,6 +10,7 @@ import { Toast } from '@/src/components/Toast';
 import { closeConversation, completeConversation, getConversationMessages, reopenConversation, sendMessage } from '@/src/api/supportApi';
 import { useAuth } from '@/src/auth/AuthContext';
 import { useNotificationPreferences } from '@/src/hooks/useNotificationPreferences';
+import { useSupportSocket } from '@/src/hooks/useSupportSocket';
 import type { SupportMessage } from '@/src/types/support';
 
 export function ConversationThreadScreen() {

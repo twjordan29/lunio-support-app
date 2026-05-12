@@ -12,7 +12,7 @@ import { closeConversation, completeConversation, getConversation, getConversati
 import { useAuth } from '@/src/auth/AuthContext';
 import { useNotificationPreferences } from '@/src/hooks/useNotificationPreferences';
 import { useSupportSocket } from '@/src/hooks/useSupportSocket';
-import type { SupportMessage } from '@/src/types/support';
+import type { Conversation, SupportMessage } from '@/src/types/support';
 
 export function ConversationThreadScreen() {
   const router = useRouter();
@@ -91,7 +91,7 @@ export function ConversationThreadScreen() {
           onPress: async () => {
             try {
               await closeConversation(conversationId);
-              setConversation(prev => prev ? { ...prev, status: 'closed' } : null);
+              setConversation((prev: Conversation | null) => prev ? { ...prev, status: 'closed' } : null);
               Alert.alert('Success', 'Conversation closed.');
               router.back(); // Go back to list
             } catch (error: any) {
@@ -115,7 +115,7 @@ export function ConversationThreadScreen() {
           onPress: async () => {
             try {
               await completeConversation(conversationId);
-              setConversation(prev => prev ? { ...prev, status: 'completed' } : null);
+              setConversation((prev: Conversation | null) => prev ? { ...prev, status: 'completed' } : null);
               Alert.alert('Success', 'Conversation marked as completed.');
               router.back();
             } catch (error: any) {
@@ -139,7 +139,7 @@ export function ConversationThreadScreen() {
           onPress: async () => {
             try {
               await reopenConversation(conversationId);
-              setConversation(prev => prev ? { ...prev, status: 'open' } : null);
+              setConversation((prev: Conversation | null) => prev ? { ...prev, status: 'open' } : null);
               Alert.alert('Success', 'Conversation reopened.');
             } catch (error: any) {
               const message = error?.response?.data?.error?.message || 'Failed to reopen conversation.';
@@ -165,9 +165,7 @@ export function ConversationThreadScreen() {
     return (
       <EmptyState
         title="Invalid Conversation"
-        message="The conversation ID is invalid."
-        actionLabel="Go Back"
-        onAction={() => router.back()}
+        subtitle="The conversation ID is invalid."
       />
     );
   }

@@ -19,6 +19,7 @@ type AuthContextValue = {
   isLoading: boolean;
   loginWithCredentials: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  handleAuthError: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -84,6 +85,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setApiAuthToken(null);
       setToken(null);
       setUser(null);
+    },
+    handleAuthError: async () => {
+      console.debug('[auth] handling auth error, logging out');
+      await clearAuthToken();
+      setApiAuthToken(null);
+      setToken(null);
+      setUser(null);
+      // Router redirect would be handled by component
     },
   }), [token, user, isLoading]);
 

@@ -17,7 +17,7 @@ import type { Conversation, ConversationStatus, SupportMessage } from '@/src/typ
 export function ConversationThreadScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user, token } = useAuth();
+  const { user, token, logout } = useAuth();
   const { preferences } = useNotificationPreferences();
   const { id } = useLocalSearchParams<{ id: string }>();
   const conversationId = Number(id);
@@ -66,6 +66,12 @@ export function ConversationThreadScreen() {
   };
 
   useSupportSocket(token, {
+    onAuthError: async () => {
+      console.debug('[thread] auth error, logging out');
+      await logout();
+      router.replace('/login');
+      Alert.alert('Session Expired', 'Your session has expired. Please log in again.');
+    },
     onMessageCreated: (payload: { conversation_id: number; message: SupportMessage }) => {
       const { conversation_id, message } = payload;
       const senderId = message.sender_id;

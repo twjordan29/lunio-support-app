@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { BackHandler, FlatList, Pressable, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, BackHandler, FlatList, Pressable, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -19,9 +19,15 @@ type FilterType = 'all' | 'open' | 'mine' | 'completed' | 'closed';
 export function ConversationListScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { token, user } = useAuth();
+  const { token, user, logout } = useAuth();
   const { preferences } = useNotificationPreferences();
   const { isConnected } = useSupportSocket(token, {
+    onAuthError: async () => {
+      console.debug('[list] auth error, logging out');
+      await logout();
+      router.replace('/login');
+      Alert.alert('Session Expired', 'Your session has expired. Please log in again.');
+    },
     onMessageCreated: (payload: { conversation_id: number; message: SupportMessage }) => {
       const { conversation_id, message } = payload;
       const senderId = message.sender_id;

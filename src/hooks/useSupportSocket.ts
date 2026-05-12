@@ -7,6 +7,7 @@ export type SupportSocketEvents = {
   onConversationUpdated?: (payload: any) => void;
   onMessageCreated?: (payload: any) => void;
   onConversationStatusChanged?: (payload: any) => void;
+  onAuthError?: () => void;
 };
 
 export function useSupportSocket(token: string | null, events?: SupportSocketEvents) {
@@ -30,7 +31,7 @@ export function useSupportSocket(token: string | null, events?: SupportSocketEve
         console.debug('[mobile-socket] status changed received:', payload);
         events?.onConversationStatusChanged?.(payload);
       },
-    });
+    }, events?.onAuthError);
   }, [token, events]);
 
   useEffect(() => {
@@ -39,8 +40,14 @@ export function useSupportSocket(token: string | null, events?: SupportSocketEve
       return;
     }
 
-    const handleConnect = () => setIsConnected(true);
-    const handleDisconnect = () => setIsConnected(false);
+    const handleConnect = () => {
+      console.debug('[mobile-socket] connected');
+      setIsConnected(true);
+    };
+    const handleDisconnect = () => {
+      console.debug('[mobile-socket] disconnected');
+      setIsConnected(false);
+    };
 
     socket.on('connect', handleConnect);
     socket.on('disconnect', handleDisconnect);

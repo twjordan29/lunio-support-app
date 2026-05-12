@@ -1,10 +1,12 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppHeader } from '@/src/components/AppHeader';
 import { MessageBubble } from '@/src/components/MessageBubble';
+import { Toast } from '@/src/components/Toast';
 import { closeConversation, completeConversation, getConversationMessages, reopenConversation, sendMessage } from '@/src/api/supportApi';
 import { useAuth } from '@/src/auth/AuthContext';
 import type { SupportMessage } from '@/src/types/support';
@@ -48,6 +50,23 @@ export function ConversationThreadScreen() {
       setIsSending(false);
     }
   };
+
+  useSupportSocket(token, {
+    onMessageCreated: (payload: { conversation_id: number; message: SupportMessage }) => {
+      const { conversation_id, message } = payload;
+      const senderId = message.sender_id;
+
+      // Only add if this conversation
+      if (conversation_id === conversationId && senderId !== user?.id) {
+        setMessages((prev) => [...prev, message]);
+        // Scroll to bottom
+        setTimeout(() => flatListRef.current?.scrollToEnd(), 100);
+
+        // Vibrate
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    },
+  });
 
   const customerName = messages.find(m => m.sender_type !== 'staff')?.sender_id || 'Customer';
 
@@ -197,6 +216,12 @@ export function ConversationThreadScreen() {
           </Pressable>
         </View>
       </KeyboardAvoidingView>
+
+      <Toast
+        message={toastMessage || ''}
+        visible={showToast}
+        onHide={() => setShowToast(false)}
+      />
     </SafeAreaView>
   );
 }

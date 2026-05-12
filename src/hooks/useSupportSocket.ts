@@ -3,18 +3,33 @@ import type { Socket } from 'socket.io-client';
 
 import { createSupportSocket } from '@/src/api/supportSocket';
 
-export function useSupportSocket(token: string | null) {
+export type SupportSocketEvents = {
+  onConversationUpdated?: (payload: any) => void;
+  onMessageCreated?: (payload: any) => void;
+  onConversationStatusChanged?: (payload: any) => void;
+};
+
+export function useSupportSocket(token: string | null, events?: SupportSocketEvents) {
   const [isConnected, setIsConnected] = useState(false);
   const [lastEvent, setLastEvent] = useState<string | null>(null);
 
   const socket = useMemo<Socket | null>(() => {
     if (!token) return null;
     return createSupportSocket(token, {
-      onConversationUpdated: () => setLastEvent('conversation:updated'),
-      onMessageCreated: () => setLastEvent('message:created'),
-      onConversationStatusChanged: () => setLastEvent('conversation:status_changed'),
+      onConversationUpdated: (payload) => {
+        setLastEvent('conversation:updated');
+        events?.onConversationUpdated?.(payload);
+      },
+      onMessageCreated: (payload) => {
+        setLastEvent('message:created');
+        events?.onMessageCreated?.(payload);
+      },
+      onConversationStatusChanged: (payload) => {
+        setLastEvent('conversation:status_changed');
+        events?.onConversationStatusChanged?.(payload);
+      },
     });
-  }, [token]);
+  }, [token, events]);
 
   useEffect(() => {
     if (!socket) {

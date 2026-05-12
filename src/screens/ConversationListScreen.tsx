@@ -1,15 +1,17 @@
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { BackHandler, FlatList, Pressable, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ConversationCard } from '@/src/components/ConversationCard';
 import { EmptyState } from '@/src/components/EmptyState';
 import { LoadingState } from '@/src/components/LoadingState';
+import { Toast } from '@/src/components/Toast';
 import { getConversations } from '@/src/api/supportApi';
 import { useAuth } from '@/src/auth/AuthContext';
 import { useSupportSocket } from '@/src/hooks/useSupportSocket';
-import type { Conversation } from '@/src/types/support';
+import type { Conversation, SupportMessage } from '@/src/types/support';
 
 type FilterType = 'all' | 'open' | 'mine' | 'completed' | 'closed';
 
@@ -17,11 +19,41 @@ export function ConversationListScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { token } = useAuth();
-  const { isConnected } = useSupportSocket(token);
+  const { isConnected } = useSupportSocket(token, {
+    onMessageCreated: (payload: { conversation_id: number; message: SupportMessage }) => {
+      const { conversation_id, message } = payload;
+      const senderId = message.sender_id;
+
+      // Don't alert for own messages
+      if (senderId === user?.id) return;
+
+      // Update conversation list
+      setItems((prev) =>
+        prev.map((conv) =>
+          conv.id === conversation_id
+            ? {
+                ...conv,
+                unread_count: conv.unread_count ? conv.unread_count + 1 : 1,
+                updated_at: message.created_at,
+              }
+            : conv
+        )
+      );
+
+      // Show toast
+      setToastMessage(`New message from ${message.sender_type === 'guest' ? 'guest' : 'customer'}`);
+      setShowToast(true);
+
+      // Vibrate
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    },
+  });
   const [items, setItems] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [filter, setFilter] = useState<FilterType>('open');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [showToast, setShowToast] = useState(false);
 
   const loadConversations = useCallback(async () => {
     if (!token) return;
@@ -127,6 +159,12 @@ export function ConversationListScreen() {
           />
         }
         contentContainerStyle={filteredItems.length === 0 ? styles.emptyContainer : undefined}
+      />
+
+      <Toast
+        message={toastMessage || ''}
+        visible={showToast}
+        onHide={() => setShowToast(false)}
       />
     </SafeAreaView>
   );

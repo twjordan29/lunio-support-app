@@ -1,15 +1,17 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { LoadingState } from '@/src/components/LoadingState';
 import { useAuth } from '@/src/auth/AuthContext';
+import { colors, shadow } from '@/src/components/theme';
 
 export function LoginScreen() {
   const router = useRouter();
   const { loginWithCredentials } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -17,7 +19,7 @@ export function LoginScreen() {
     const trimmedEmail = email.trim();
     const trimmedPassword = password.trim();
     if (!trimmedEmail || !trimmedPassword) {
-      setError('Email and password are required.');
+      setError('Enter your staff email and password to continue.');
       return;
     }
 
@@ -27,52 +29,75 @@ export function LoginScreen() {
       await loginWithCredentials(trimmedEmail, trimmedPassword);
       router.replace('/conversations');
     } catch (err: any) {
-      setError(err.message || 'Login failed.');
+      setError(err.message || 'Login failed. Check your credentials and try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (isLoading) {
-    return <LoadingState message="Logging in..." />;
-  }
-
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        style={styles.keyboardView}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
+      <KeyboardAvoidingView style={styles.keyboardView} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <View style={styles.heroGlow} />
         <View style={styles.content}>
-          <View style={styles.header}>
-            <Text style={styles.logo}>L</Text>
-            <Text style={styles.title}>Lunio Support</Text>
-            <Text style={styles.subtitle}>Mobile Support Console</Text>
+          <View style={styles.brandBlock}>
+            <View style={styles.logoMark}>
+              <Text style={styles.logoText}>L</Text>
+            </View>
+            <Text style={styles.kicker}>Lunio Support</Text>
+            <Text style={styles.title}>Staff inbox for customer conversations</Text>
+            <Text style={styles.subtitle}>Sign in with your Lunio staff account to manage live guest chats, follow-ups, and closed conversations.</Text>
           </View>
 
-          <View style={styles.form}>
-            <TextInput
-              placeholder="Email address"
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="email-address"
-              placeholderTextColor="#94a3b8"
-            />
-            <TextInput
-              placeholder="Password"
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
-              placeholderTextColor="#94a3b8"
-            />
-            {error && <Text style={styles.error}>{error}</Text>}
-            <Pressable style={styles.button} onPress={onLogin}>
-              <Text style={styles.buttonText}>Sign In</Text>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Secure staff access</Text>
+            <Text style={styles.cardSubtitle}>Use your Lunio credentials. Sessions are stored securely on this device.</Text>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Email address</Text>
+              <View style={[styles.inputShell, error && !email.trim() ? styles.inputError : null]}>
+                <Ionicons name="mail-outline" size={18} color={colors.faint} />
+                <TextInput
+                  placeholder="staff@lunio.com"
+                  style={styles.input}
+                  value={email}
+                  onChangeText={setEmail}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="email-address"
+                  placeholderTextColor={colors.faint}
+                />
+              </View>
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>Password</Text>
+              <View style={[styles.inputShell, error && !password.trim() ? styles.inputError : null]}>
+                <Ionicons name="lock-closed-outline" size={18} color={colors.faint} />
+                <TextInput
+                  placeholder="Enter password"
+                  style={styles.input}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  placeholderTextColor={colors.faint}
+                />
+                <Pressable onPress={() => setShowPassword((value) => !value)} hitSlop={8}>
+                  <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.muted} />
+                </Pressable>
+              </View>
+            </View>
+
+            {error && (
+              <View style={styles.errorBox}>
+                <Ionicons name="alert-circle-outline" size={18} color={colors.danger} />
+                <Text style={styles.error}>{error}</Text>
+              </View>
+            )}
+
+            <Pressable style={({ pressed }) => [styles.button, pressed && styles.buttonPressed, isLoading && styles.buttonDisabled]} onPress={onLogin} disabled={isLoading}>
+              {isLoading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Sign in to inbox</Text>}
             </Pressable>
           </View>
         </View>
@@ -84,65 +109,143 @@ export function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a',
+    backgroundColor: colors.navy,
   },
   keyboardView: {
     flex: 1,
   },
+  heroGlow: {
+    position: 'absolute',
+    top: -120,
+    right: -90,
+    width: 260,
+    height: 260,
+    borderRadius: 160,
+    backgroundColor: '#1D4ED855',
+  },
   content: {
     flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: 22,
+    paddingVertical: 28,
   },
-  header: {
+  brandBlock: {
+    marginBottom: 28,
+  },
+  logoMark: {
+    width: 62,
+    height: 62,
+    borderRadius: 22,
     alignItems: 'center',
-    marginBottom: 48,
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    marginBottom: 18,
   },
-  logo: {
-    fontSize: 64,
-    fontWeight: 'bold',
-    color: '#2563eb',
-    marginBottom: 16,
+  logoText: {
+    color: colors.navy,
+    fontSize: 32,
+    fontWeight: '900',
+  },
+  kicker: {
+    color: '#93C5FD',
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#ffffff',
-    marginBottom: 8,
+    marginTop: 10,
+    color: '#FFFFFF',
+    fontSize: 31,
+    lineHeight: 37,
+    fontWeight: '900',
   },
   subtitle: {
-    fontSize: 16,
-    color: '#94a3b8',
+    marginTop: 12,
+    color: '#CBD5E1',
+    fontSize: 15,
+    lineHeight: 22,
   },
-  form: {
-    width: '100%',
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: 30,
+    padding: 20,
+    ...shadow,
+  },
+  cardTitle: {
+    color: colors.text,
+    fontSize: 19,
+    fontWeight: '900',
+  },
+  cardSubtitle: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 6,
+    marginBottom: 18,
+  },
+  fieldGroup: {
+    marginBottom: 14,
+  },
+  label: {
+    marginBottom: 7,
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  inputShell: {
+    minHeight: 54,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceSoft,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  inputError: {
+    borderColor: colors.danger,
   },
   input: {
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    color: '#ffffff',
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#334155',
+    flex: 1,
+    color: colors.text,
+    fontSize: 15,
+    paddingVertical: 12,
+  },
+  errorBox: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'flex-start',
+    backgroundColor: colors.dangerSoft,
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 14,
   },
   error: {
-    color: '#ef4444',
-    fontSize: 14,
-    marginBottom: 16,
-    textAlign: 'center',
+    flex: 1,
+    color: '#991B1B',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '700',
   },
   button: {
-    backgroundColor: '#2563eb',
-    borderRadius: 12,
-    padding: 16,
+    minHeight: 54,
+    borderRadius: 18,
     alignItems: 'center',
-    marginTop: 8,
+    justifyContent: 'center',
+    backgroundColor: colors.blue,
+  },
+  buttonPressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.99 }],
+  },
+  buttonDisabled: {
+    opacity: 0.72,
   },
   buttonText: {
-    color: '#ffffff',
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '900',
   },
 });

@@ -1,11 +1,13 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppHeader } from '@/src/components/AppHeader';
-import { config } from '@/src/config/env';
 import { useAuth } from '@/src/auth/AuthContext';
+import { AppHeader } from '@/src/components/AppHeader';
+import { colors, shadow } from '@/src/components/theme';
+import { config } from '@/src/config/env';
 import { useNotificationPreferences } from '@/src/hooks/useNotificationPreferences';
 
 export function SettingsScreen() {
@@ -21,82 +23,46 @@ export function SettingsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <AppHeader
-        title="Settings"
-        onBack={() => router.back()}
-      />
+      <AppHeader title="Settings" subtitle="Account and support console" onBack={() => router.back()} />
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]}>
         {user && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Account</Text>
-            <View style={styles.infoRow}>
-              <Text style={styles.label}>Name</Text>
-              <Text style={styles.value}>{user.name}</Text>
+          <View style={styles.profileCard}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{String(user.name || user.email || 'S').slice(0, 1).toUpperCase()}</Text>
             </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.label}>Email</Text>
-              <Text style={styles.value}>{user.email}</Text>
+            <View style={styles.profileText}>
+              <Text style={styles.profileName}>{user.name}</Text>
+              <Text style={styles.profileEmail}>{user.email}</Text>
             </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.label}>Role</Text>
-              <Text style={styles.value}>{user.role}</Text>
+            <View style={styles.rolePill}>
+              <Text style={styles.roleText}>{user.role}</Text>
             </View>
           </View>
         )}
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Services</Text>
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Lunio</Text>
-            <Text style={styles.value}>{config.lunioWebUrl}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Support API</Text>
-            <Text style={styles.value}>{config.supportApiUrl}</Text>
-          </View>
-        </View>
-
-        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Notifications</Text>
-          <View style={styles.toggleRow}>
-            <Text style={styles.toggleLabel}>In-app banners</Text>
-            <Switch
-              value={preferences.bannersEnabled}
-              onValueChange={(value) => updatePreferences({ bannersEnabled: value })}
-            />
-          </View>
-          <View style={styles.toggleRow}>
-            <Text style={styles.toggleLabel}>Vibration</Text>
-            <Switch
-              value={preferences.vibrationEnabled}
-              onValueChange={(value) => updatePreferences({ vibrationEnabled: value })}
-            />
-          </View>
-          <View style={styles.toggleRow}>
-            <Text style={styles.toggleLabel}>Assigned conversations only</Text>
-            <Switch
-              value={preferences.assignedOnly}
-              onValueChange={(value) => updatePreferences({ assignedOnly: value })}
-            />
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.label}>Push notifications</Text>
-            <Text style={styles.value}>
-              {preferences.isExpoGo
-                ? 'Requires development build on Android'
-                : preferences.pushNotificationsEnabled && preferences.pushTokenRegistered
-                  ? 'Enabled (Registered)'
-                  : preferences.pushNotificationsEnabled
-                    ? 'Enabled (Not registered)'
-                    : 'Disabled'}
-            </Text>
-          </View>
-          {preferences.isExpoGo && (
-            <Text style={styles.infoText}>
-              Push notifications require a development build on Android. Expo Go can only test the app UI.
-            </Text>
-          )}
+          <SettingToggle
+            icon="notifications-outline"
+            label="In-app banners"
+            value={preferences.bannersEnabled}
+            onValueChange={(value) => updatePreferences({ bannersEnabled: value })}
+          />
+          <SettingToggle
+            icon="phone-portrait-outline"
+            label="Vibration"
+            value={preferences.vibrationEnabled}
+            onValueChange={(value) => updatePreferences({ vibrationEnabled: value })}
+          />
+          <SettingToggle
+            icon="person-circle-outline"
+            label="Assigned conversations only"
+            value={preferences.assignedOnly}
+            onValueChange={(value) => updatePreferences({ assignedOnly: value })}
+          />
+          <InfoRow label="Push notifications" value={preferences.isExpoGo ? 'Development build required' : preferences.pushNotificationsEnabled && preferences.pushTokenRegistered ? 'Enabled and registered' : preferences.pushNotificationsEnabled ? 'Enabled, not registered' : 'Disabled'} />
+          {preferences.isExpoGo && <Text style={styles.infoText}>Push notifications require a development build on Android. Expo Go can only test the app UI.</Text>}
           {preferences.pushRegistrationError && (
             <Text style={styles.infoText}>
               {preferences.pushRegistrationError.includes('FirebaseApp') || preferences.pushRegistrationError.includes('FCM')
@@ -106,20 +72,49 @@ export function SettingsScreen() {
           )}
         </View>
 
-        <View style={[styles.actions, { paddingBottom: insets.bottom + 16 }]}>
-          <Pressable style={styles.logoutButton} onPress={onLogout}>
-            <Text style={styles.logoutText}>Sign Out</Text>
-          </Pressable>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>App details</Text>
+          <InfoRow label="Lunio" value={config.lunioWebUrl} />
+          <InfoRow label="Support API" value={config.supportApiUrl} />
+          <InfoRow label="Console" value="Lunio Support 1.0" />
         </View>
+
+        <Pressable style={({ pressed }) => [styles.logoutButton, pressed && styles.logoutPressed]} onPress={onLogout}>
+          <Ionicons name="log-out-outline" size={20} color="#FFFFFF" />
+          <Text style={styles.logoutText}>Sign out</Text>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function SettingToggle({ icon, label, value, onValueChange }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: boolean; onValueChange: (value: boolean) => void }) {
+  return (
+    <View style={styles.toggleRow}>
+      <View style={styles.toggleLabelWrap}>
+        <View style={styles.rowIcon}>
+          <Ionicons name={icon} size={18} color={colors.blue} />
+        </View>
+        <Text style={styles.toggleLabel}>{label}</Text>
+      </View>
+      <Switch value={value} onValueChange={onValueChange} thumbColor={value ? '#FFFFFF' : '#F8FAFC'} trackColor={{ false: '#CBD5E1', true: colors.blue }} />
+    </View>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.infoRow}>
+      <Text style={styles.label}>{label}</Text>
+      <Text style={styles.value} numberOfLines={2}>{value}</Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.background,
   },
   scrollView: {
     flex: 1,
@@ -127,46 +122,71 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
   },
-  section: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
+  profileCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 13,
+    backgroundColor: colors.surface,
+    borderRadius: 26,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadow,
+  },
+  avatar: {
+    width: 54,
+    height: 54,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.navy,
+  },
+  avatarText: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  profileText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  profileName: {
+    color: colors.text,
+    fontSize: 17,
+    fontWeight: '900',
+  },
+  profileEmail: {
+    marginTop: 3,
+    color: colors.muted,
+    fontSize: 13,
+  },
+  rolePill: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: colors.sky,
+  },
+  roleText: {
+    color: colors.blueDark,
+    fontSize: 12,
+    fontWeight: '900',
+    textTransform: 'capitalize',
+  },
+  section: {
+    backgroundColor: colors.surface,
+    borderRadius: 26,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadow,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#0f172a',
-    marginBottom: 16,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  label: {
-    fontSize: 16,
-    color: '#64748b',
-  },
-  value: {
-    fontSize: 16,
-    color: '#0f172a',
-    fontWeight: '500',
-    flex: 1,
-    textAlign: 'right',
-  },
-  infoText: {
-    fontSize: 14,
-    color: '#64748b',
-    marginTop: 4,
-    marginBottom: 16,
-    lineHeight: 20,
+    fontWeight: '900',
+    color: colors.text,
+    marginBottom: 12,
   },
   toggleRow: {
     flexDirection: 'row',
@@ -174,22 +194,68 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
   },
-  toggleLabel: {
-    fontSize: 16,
-    color: '#0f172a',
+  toggleLabelWrap: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingRight: 12,
   },
-  actions: {
-    marginTop: 32,
+  rowIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.sky,
+  },
+  toggleLabel: {
+    flex: 1,
+    fontSize: 15,
+    color: colors.text,
+    fontWeight: '800',
+  },
+  infoRow: {
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  label: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: 5,
+  },
+  value: {
+    color: colors.text,
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: '700',
+  },
+  infoText: {
+    marginTop: 8,
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 19,
   },
   logoutButton: {
-    backgroundColor: '#ef4444',
-    borderRadius: 12,
-    padding: 16,
+    minHeight: 54,
+    borderRadius: 20,
     alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    backgroundColor: colors.danger,
+  },
+  logoutPressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.99 }],
   },
   logoutText: {
-    color: '#ffffff',
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '900',
   },
 });

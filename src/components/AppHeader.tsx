@@ -2,6 +2,8 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { colors } from './theme';
+
 interface AppHeaderProps {
   title: string;
   subtitle?: string;
@@ -13,23 +15,19 @@ export function AppHeader({ title, subtitle, rightAction, onBack }: AppHeaderPro
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {onBack && (
-        <Pressable style={styles.backButton} onPress={onBack}>
+    <View style={[styles.container, { paddingTop: insets.top + 10 }]}>
+      {onBack ? (
+        <Pressable style={styles.backButton} onPress={onBack} hitSlop={10}>
           <Text style={styles.backText}>‹</Text>
         </Pressable>
+      ) : (
+        <View style={styles.sideSpace} />
       )}
       <View style={styles.titleContainer}>
-        <Text style={styles.title} numberOfLines={1}>
-          {title}
-        </Text>
-        {subtitle && (
-          <Text style={styles.subtitle} numberOfLines={1}>
-            {subtitle}
-          </Text>
-        )}
+        <Text style={styles.title} numberOfLines={1}>{title}</Text>
+        {subtitle && <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>}
       </View>
-      {rightAction && <View style={styles.right}>{rightAction}</View>}
+      {rightAction ? <View style={styles.right}>{rightAction}</View> : <View style={styles.sideSpace} />}
     </View>
   );
 }
@@ -39,44 +37,48 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-    minHeight: 56,
+    paddingBottom: 14,
+    backgroundColor: colors.navy,
   },
   backButton: {
-    width: 40,
-    height: 40,
+    width: 42,
+    height: 42,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 8,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.10)',
   },
   backText: {
-    fontSize: 24,
-    color: '#334155',
-    fontWeight: 'bold',
+    color: '#FFFFFF',
+    fontSize: 30,
+    lineHeight: 32,
+    fontWeight: '700',
+  },
+  sideSpace: {
+    width: 42,
+    height: 42,
   },
   titleContainer: {
     flex: 1,
     alignItems: 'center',
+    paddingHorizontal: 12,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#0f172a',
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#FFFFFF',
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 14,
-    color: '#64748b',
+    fontSize: 12,
+    color: '#CBD5E1',
     textAlign: 'center',
-    marginTop: 2,
+    marginTop: 3,
   },
   right: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
+    minWidth: 42,
+    minHeight: 42,
+    alignItems: 'flex-end',
     justifyContent: 'center',
   },
 });

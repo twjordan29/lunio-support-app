@@ -1,0 +1,30 @@
+export const colors = {
+  navy: '#0B1220',
+  navy2: '#111B2E',
+  blue: '#2563EB',
+  blueDark: '#1D4ED8',
+  sky: '#EAF2FF',
+  background: '#F5F7FB',
+  surface: '#FFFFFF',
+  surfaceSoft: '#F8FAFC',
+  border: '#E2E8F0',
+  text: '#0F172A',
+  muted: '#64748B',
+  faint: '#94A3B8',
+  success: '#16A34A',
+  successSoft: '#DCFCE7',
+  warning: '#D97706',
+  warningSoft: '#FEF3C7',
+  danger: '#DC2626',
+  dangerSoft: '#FEE2E2',
+  closed: '#475569',
+  closedSoft: '#E2E8F0',
+};
+
+export const shadow = {
+  shadowColor: '#0F172A',
+  shadowOffset: { width: 0, height: 10 },
+  shadowOpacity: 0.08,
+  shadowRadius: 20,
+  elevation: 4,
+} as const;

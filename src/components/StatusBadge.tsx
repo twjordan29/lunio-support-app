@@ -1,51 +1,53 @@
 import React from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+
+import { colors } from './theme';
 
 interface StatusBadgeProps {
   status: string;
-  variant?: 'primary' | 'secondary';
+  variant?: 'solid' | 'soft';
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  open: '#10b981',
-  pending: '#f59e0b',
-  resolved: '#3b82f6',
-  closed: '#6b7280',
-  default: '#6b7280',
+const STATUS_META: Record<string, { label: string; color: string; background: string }> = {
+  open: { label: 'Open', color: colors.success, background: colors.successSoft },
+  pending: { label: 'Pending', color: colors.warning, background: colors.warningSoft },
+  completed: { label: 'Completed', color: colors.blue, background: colors.sky },
+  resolved: { label: 'Resolved', color: colors.blue, background: colors.sky },
+  closed: { label: 'Closed', color: colors.closed, background: colors.closedSoft },
 };
 
-export function StatusBadge({ status, variant = 'primary' }: StatusBadgeProps) {
-  const backgroundColor = STATUS_COLORS[status.toLowerCase()] || STATUS_COLORS.default;
-  const textColor = variant === 'primary' ? '#ffffff' : backgroundColor;
-  const backgroundColorStyle = variant === 'primary' ? backgroundColor : 'transparent';
-  const borderWidth = variant === 'secondary' ? 1 : 0;
-  const borderColor = variant === 'secondary' ? backgroundColor : 'transparent';
+export function StatusBadge({ status, variant = 'soft' }: StatusBadgeProps) {
+  const key = String(status || 'open').toLowerCase();
+  const meta = STATUS_META[key] || { label: key || 'Unknown', color: colors.closed, background: colors.closedSoft };
+  const solid = variant === 'solid';
 
   return (
-    <Text
-      style={[
-        styles.badge,
-        {
-          backgroundColor: backgroundColorStyle,
-          color: textColor,
-          borderWidth,
-          borderColor,
-        },
-      ]}
-    >
-      {status}
-    </Text>
+    <View style={[styles.badge, { backgroundColor: solid ? meta.color : meta.background, borderColor: solid ? meta.color : `${meta.color}33` }]}>
+      <View style={[styles.dot, { backgroundColor: solid ? '#FFFFFF' : meta.color }]} />
+      <Text style={[styles.text, { color: solid ? '#FFFFFF' : meta.color }]}>{meta.label}</Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   badge: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 999,
+  },
+  text: {
     fontSize: 12,
-    fontWeight: '600',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    fontWeight: '800',
     textTransform: 'capitalize',
-    textAlign: 'center',
   },
 });

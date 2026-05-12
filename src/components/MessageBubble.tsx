@@ -1,23 +1,35 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { colors } from './theme';
 import { formatFriendlyDate } from '@/src/utils/date';
 
 interface MessageBubbleProps {
   message: string;
   isFromUser: boolean;
   timestamp: string;
+  isSystem?: boolean;
 }
 
-export function MessageBubble({ message, isFromUser, timestamp }: MessageBubbleProps) {
-  return (
-    <View style={[styles.container, isFromUser ? styles.userContainer : styles.supportContainer]}>
-      <View style={[styles.bubble, isFromUser ? styles.userBubble : styles.supportBubble]}>
-        <Text style={[styles.text, isFromUser ? styles.userText : styles.supportText]}>
-          {message}
-        </Text>
+export function MessageBubble({ message, isFromUser, timestamp, isSystem = false }: MessageBubbleProps) {
+  if (isSystem) {
+    return (
+      <View style={styles.systemWrap}>
+        <Text style={styles.systemText}>{message}</Text>
+        <Text style={styles.systemTime}>{formatFriendlyDate(timestamp)}</Text>
       </View>
-      <Text style={[styles.timestamp, isFromUser ? styles.userTimestamp : styles.supportTimestamp]}>
+    );
+  }
+
+  return (
+    <View style={[styles.container, isFromUser ? styles.staffContainer : styles.guestContainer]}>
+      <View style={[styles.labelRow, isFromUser ? styles.staffLabelRow : styles.guestLabelRow]}>
+        <Text style={styles.senderLabel}>{isFromUser ? 'You' : 'Guest'}</Text>
+      </View>
+      <View style={[styles.bubble, isFromUser ? styles.staffBubble : styles.guestBubble]}>
+        <Text style={[styles.text, isFromUser ? styles.staffText : styles.guestText]}>{message}</Text>
+      </View>
+      <Text style={[styles.timestamp, isFromUser ? styles.staffTimestamp : styles.guestTimestamp]}>
         {formatFriendlyDate(timestamp)}
       </Text>
     </View>
@@ -26,49 +38,91 @@ export function MessageBubble({ message, isFromUser, timestamp }: MessageBubbleP
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 4,
-    maxWidth: '80%',
+    marginVertical: 7,
+    maxWidth: '84%',
   },
-  userContainer: {
+  staffContainer: {
     alignSelf: 'flex-end',
     alignItems: 'flex-end',
   },
-  supportContainer: {
+  guestContainer: {
     alignSelf: 'flex-start',
     alignItems: 'flex-start',
   },
+  labelRow: {
+    marginBottom: 4,
+    paddingHorizontal: 4,
+  },
+  staffLabelRow: {
+    alignItems: 'flex-end',
+  },
+  guestLabelRow: {
+    alignItems: 'flex-start',
+  },
+  senderLabel: {
+    fontSize: 11,
+    color: colors.faint,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
   bubble: {
-    borderRadius: 18,
+    borderRadius: 22,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    marginBottom: 4,
   },
-  userBubble: {
-    backgroundColor: '#2563eb',
+  staffBubble: {
+    backgroundColor: colors.navy,
+    borderBottomRightRadius: 8,
   },
-  supportBubble: {
-    backgroundColor: '#f1f5f9',
+  guestBubble: {
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: colors.border,
+    borderBottomLeftRadius: 8,
   },
   text: {
-    fontSize: 16,
+    fontSize: 15,
     lineHeight: 22,
   },
-  userText: {
-    color: '#ffffff',
+  staffText: {
+    color: '#FFFFFF',
   },
-  supportText: {
-    color: '#0f172a',
+  guestText: {
+    color: colors.text,
   },
   timestamp: {
-    fontSize: 12,
-    marginHorizontal: 8,
+    fontSize: 11,
+    marginTop: 5,
+    marginHorizontal: 6,
+    fontWeight: '600',
   },
-  userTimestamp: {
-    color: '#94a3b8',
+  staffTimestamp: {
+    color: colors.faint,
   },
-  supportTimestamp: {
-    color: '#64748b',
+  guestTimestamp: {
+    color: colors.muted,
+  },
+  systemWrap: {
+    alignSelf: 'center',
+    maxWidth: '88%',
+    alignItems: 'center',
+    marginVertical: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 16,
+    backgroundColor: '#E8EEF7',
+  },
+  systemText: {
+    color: colors.closed,
+    fontSize: 13,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  systemTime: {
+    marginTop: 3,
+    color: colors.faint,
+    fontSize: 11,
+    fontWeight: '700',
   },
 });

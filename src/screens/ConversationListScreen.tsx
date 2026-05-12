@@ -1,26 +1,36 @@
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, BackHandler, FlatList, Pressable, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
-import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { getConversations } from '@/src/api/supportApi';
+import { useAuth } from '@/src/auth/AuthContext';
+import { ConnectionPill } from '@/src/components/ConnectionPill';
 import { ConversationCard } from '@/src/components/ConversationCard';
 import { EmptyState } from '@/src/components/EmptyState';
 import { LoadingState } from '@/src/components/LoadingState';
 import { Toast } from '@/src/components/Toast';
-import { getConversations } from '@/src/api/supportApi';
-import { useAuth } from '@/src/auth/AuthContext';
+import { colors } from '@/src/components/theme';
 import { useNotificationPreferences } from '@/src/hooks/useNotificationPreferences';
 import { useSupportSocket } from '@/src/hooks/useSupportSocket';
 import type { Conversation, ConversationStatus, SupportMessage } from '@/src/types/support';
 
-type FilterType = 'all' | 'open' | 'mine' | 'completed' | 'closed';
+ type FilterType = 'all' | 'open' | 'mine' | 'completed' | 'closed';
 
 export function ConversationListScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { token, user, logout } = useAuth();
   const { preferences } = useNotificationPreferences();
+  const [items, setItems] = useState<Conversation[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [filter, setFilter] = useState<FilterType>('open');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [showToast, setShowToast] = useState(false);
+
   const { isConnected } = useSupportSocket(token, {
     onAuthError: async () => {
       console.debug('[list] auth error, logging out');
@@ -31,61 +41,38 @@ export function ConversationListScreen() {
     onMessageCreated: (payload: { conversation_id: number; message: SupportMessage }) => {
       const { conversation_id, message } = payload;
       const senderId = message.sender_id;
-
-      // Don't alert for own messages
       if (senderId === user?.id) return;
 
-      // Check assigned only preference
       const conversation = items.find((c) => c.id === conversation_id);
       if (preferences.assignedOnly && !conversation?.assigned_admin_id) return;
 
-      // Update conversation list
       setItems((prev) =>
         prev.map((conv) =>
           conv.id === conversation_id
-            ? {
-                ...conv,
-                unread_count: conv.unread_count ? conv.unread_count + 1 : 1,
-                updated_at: message.created_at,
-              }
+            ? { ...conv, unread_count: conv.unread_count ? conv.unread_count + 1 : 1, updated_at: message.created_at, subject: message.body || conv.subject }
             : conv
         )
       );
 
-      // Show toast if enabled
       if (preferences.bannersEnabled) {
         setToastMessage(`New message from ${message.sender_type === 'guest' ? 'guest' : 'customer'}`);
         setShowToast(true);
       }
-
-      // Vibrate if enabled
       if (preferences.vibrationEnabled) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     },
     onConversationStatusChanged: (payload: { conversation_id: number; status: string; conversation: Conversation }) => {
       const { conversation_id, status, conversation } = payload;
-
-      // Update conversation status in list
       setItems((prev) =>
         prev.map((conv) =>
           conv.id === conversation_id
-            ? {
-                ...conv,
-                status: status as ConversationStatus,
-                updated_at: conversation.updated_at,
-              }
+            ? { ...conv, status: status as ConversationStatus, updated_at: conversation.updated_at }
             : conv
         )
       );
     },
   });
-  const [items, setItems] = useState<Conversation[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [filter, setFilter] = useState<FilterType>('open');
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [showToast, setShowToast] = useState(false);
 
   const loadConversations = useCallback(async () => {
     if (!token) return;
@@ -102,12 +89,17 @@ export function ConversationListScreen() {
   }, [loadConversations]);
 
   useEffect(() => {
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-      // Prevent back button from exiting the app on conversation list
-      return true;
-    });
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => true);
     return () => backHandler.remove();
   }, []);
+
+  const counts = useMemo(() => ({
+    open: items.filter((item) => item.status === 'open').length,
+    mine: items.filter((item) => item.assigned_admin_id !== null && item.status === 'open').length,
+    completed: items.filter((item) => item.status === 'completed').length,
+    closed: items.filter((item) => item.status === 'closed').length,
+    all: items.length,
+  }), [items]);
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
@@ -132,10 +124,8 @@ export function ConversationListScreen() {
     setIsRefreshing(false);
   };
 
-  const statusIndicator = isConnected ? '🟢 Live' : '🔴 Offline';
-
   if (isLoading) {
-    return <LoadingState />;
+    return <LoadingState message="Preparing your support queue..." />;
   }
 
   const filters: { key: FilterType; label: string }[] = [
@@ -148,25 +138,44 @@ export function ConversationListScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top }]}>
-        <Text style={styles.title}>Conversations</Text>
-        <View style={styles.headerRight}>
-          <Text style={styles.status}>{statusIndicator}</Text>
-          <Text style={styles.settings} onPress={() => router.push('/settings')}>⚙️</Text>
+      <View style={[styles.hero, { paddingTop: insets.top + 12 }]}>
+        <View style={styles.headerRow}>
+          <View>
+            <Text style={styles.eyebrow}>Lunio Support</Text>
+            <Text style={styles.title}>Inbox</Text>
+          </View>
+          <View style={styles.headerActions}>
+            <ConnectionPill connected={isConnected} />
+            <Pressable style={styles.iconButton} onPress={() => router.push('/settings')} hitSlop={8}>
+              <Ionicons name="settings-outline" size={20} color="#FFFFFF" />
+            </Pressable>
+          </View>
+        </View>
+
+        <View style={styles.summaryCard}>
+          <View>
+            <Text style={styles.summaryNumber}>{counts.open}</Text>
+            <Text style={styles.summaryLabel}>Open conversations</Text>
+          </View>
+          <View style={styles.summaryDivider} />
+          <View>
+            <Text style={styles.summaryNumber}>{items.reduce((total, item) => total + Number(item.unread_count || 0), 0)}</Text>
+            <Text style={styles.summaryLabel}>Unread messages</Text>
+          </View>
         </View>
       </View>
 
       <View style={styles.filterBar}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterContainer}>
-          {filters.map(({ key, label }) => (
-            <Pressable
-              key={key}
-              style={[styles.filterButton, filter === key && styles.filterButtonActive]}
-              onPress={() => setFilter(key)}
-            >
-              <Text style={[styles.filterText, filter === key && styles.filterTextActive]}>{label}</Text>
-            </Pressable>
-          ))}
+          {filters.map(({ key, label }) => {
+            const active = filter === key;
+            return (
+              <Pressable key={key} style={[styles.filterButton, active && styles.filterButtonActive]} onPress={() => setFilter(key)}>
+                <Text style={[styles.filterText, active && styles.filterTextActive]}>{label}</Text>
+                <Text style={[styles.filterCount, active && styles.filterCountActive]}>{counts[key]}</Text>
+              </Pressable>
+            );
+          })}
         </ScrollView>
       </View>
 
@@ -177,35 +186,25 @@ export function ConversationListScreen() {
         renderItem={({ item }) => (
           <ConversationCard
             conversation={item}
+            currentUserId={user?.id}
             onPress={() => {
-              // Mark as read locally
-              setItems((prev) =>
-                prev.map((conv) =>
-                  conv.id === item.id ? { ...conv, unread_count: 0 } : conv
-                )
-              );
+              setItems((prev) => prev.map((conv) => conv.id === item.id ? { ...conv, unread_count: 0 } : conv));
               router.push(`/conversations/${item.id}`);
             }}
           />
         )}
-        refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={colors.blue} />}
         ListEmptyComponent={
           <EmptyState
-            title={`No ${filter} conversations`}
-            subtitle={filter === 'all' ? "New support requests will appear here" : `No conversations match the ${filter} filter`}
+            title={filter === 'all' ? 'No conversations yet' : `No ${filter} conversations`}
+            subtitle={filter === 'open' ? 'New guest conversations will appear here as soon as they arrive.' : 'Try another filter or pull down to refresh the queue.'}
             icon="💬"
           />
         }
-        contentContainerStyle={filteredItems.length === 0 ? styles.emptyContainer : undefined}
+        contentContainerStyle={[styles.listContent, filteredItems.length === 0 && styles.emptyContainer]}
       />
 
-      <Toast
-        message={toastMessage || ''}
-        visible={showToast}
-        onHide={() => setShowToast(false)}
-      />
+      <Toast message={toastMessage || ''} visible={showToast} onHide={() => setShowToast(false)} />
     </SafeAreaView>
   );
 }
@@ -213,66 +212,127 @@ export function ConversationListScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.background,
   },
-  header: {
+  hero: {
+    backgroundColor: colors.navy,
+    paddingHorizontal: 18,
+    paddingBottom: 18,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+  },
+  eyebrow: {
+    color: '#93C5FD',
+    fontSize: 12,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#0f172a',
+    color: '#FFFFFF',
+    fontSize: 34,
+    lineHeight: 40,
+    fontWeight: '900',
   },
-  headerRight: {
+  headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
   },
-  status: {
-    fontSize: 14,
-    color: '#64748b',
-    marginRight: 12,
+  iconButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.12)',
   },
-  settings: {
-    fontSize: 20,
+  summaryCard: {
+    marginTop: 18,
+    borderRadius: 24,
+    padding: 18,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.13)',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  summaryNumber: {
+    color: '#FFFFFF',
+    fontSize: 28,
+    fontWeight: '900',
+  },
+  summaryLabel: {
+    color: '#CBD5E1',
+    marginTop: 4,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  summaryDivider: {
+    width: 1,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    marginHorizontal: 16,
   },
   filterBar: {
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    paddingTop: 14,
   },
   filterContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingBottom: 8,
+    gap: 9,
   },
   filterButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginRight: 8,
-    borderRadius: 20,
-    backgroundColor: '#f1f5f9',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   filterButtonActive: {
-    backgroundColor: '#2563eb',
+    backgroundColor: colors.navy,
+    borderColor: colors.navy,
   },
   filterText: {
-    fontSize: 14,
-    color: '#64748b',
-    fontWeight: '500',
+    fontSize: 13,
+    color: colors.muted,
+    fontWeight: '900',
   },
   filterTextActive: {
-    color: '#ffffff',
+    color: '#FFFFFF',
+  },
+  filterCount: {
+    minWidth: 22,
+    textAlign: 'center',
+    borderRadius: 999,
+    overflow: 'hidden',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    backgroundColor: colors.surfaceSoft,
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  filterCountActive: {
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    color: '#FFFFFF',
   },
   list: {
     flex: 1,
   },
+  listContent: {
+    paddingTop: 4,
+    paddingBottom: 24,
+  },
   emptyContainer: {
-    flex: 1,
+    flexGrow: 1,
   },
 });

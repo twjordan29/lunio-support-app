@@ -1,7 +1,8 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { LoadingState } from '@/src/components/LoadingState';
 import { useAuth } from '@/src/auth/AuthContext';
 
 export function LoginScreen() {
@@ -32,42 +33,116 @@ export function LoginScreen() {
     }
   };
 
+  if (isLoading) {
+    return <LoadingState message="Logging in..." />;
+  }
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Lunio Support</Text>
-      <Text style={styles.caption}>Log in with your Lunio admin or support credentials.</Text>
-      <TextInput
-        placeholder="Email"
-        style={styles.input}
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        autoCorrect={false}
-        keyboardType="email-address"
-      />
-      <TextInput
-        placeholder="Password"
-        style={styles.input}
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        autoCapitalize="none"
-      />
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      <Pressable style={[styles.button, isLoading && styles.buttonDisabled]} onPress={onLogin} disabled={isLoading}>
-        <Text style={styles.buttonText}>{isLoading ? 'Logging in...' : 'Log In'}</Text>
-      </Pressable>
-    </View>
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView
+        style={styles.keyboardView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <Text style={styles.logo}>L</Text>
+            <Text style={styles.title}>Lunio Support</Text>
+            <Text style={styles.subtitle}>Mobile Support Console</Text>
+          </View>
+
+          <View style={styles.form}>
+            <TextInput
+              placeholder="Email address"
+              style={styles.input}
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="email-address"
+              placeholderTextColor="#94a3b8"
+            />
+            <TextInput
+              placeholder="Password"
+              style={styles.input}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              autoCapitalize="none"
+              placeholderTextColor="#94a3b8"
+            />
+            {error && <Text style={styles.error}>{error}</Text>}
+            <Pressable style={styles.button} onPress={onLogin}>
+              <Text style={styles.buttonText}>Sign In</Text>
+            </Pressable>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, justifyContent: 'center', backgroundColor: '#f5f7fb' },
-  title: { fontSize: 28, fontWeight: '700', marginBottom: 8, color: '#0f172a' },
-  caption: { color: '#475569', marginBottom: 16 },
-  input: { borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 12, padding: 14, backgroundColor: '#fff', marginBottom: 12 },
-  error: { color: '#b91c1c', marginTop: 8 },
-  button: { marginTop: 16, backgroundColor: '#2563eb', borderRadius: 12, padding: 14, alignItems: 'center' },
-  buttonDisabled: { backgroundColor: '#9ca3af' },
-  buttonText: { color: '#fff', fontWeight: '600' }
+  container: {
+    flex: 1,
+    backgroundColor: '#0f172a',
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 48,
+  },
+  logo: {
+    fontSize: 64,
+    fontWeight: 'bold',
+    color: '#2563eb',
+    marginBottom: 16,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#ffffff',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#94a3b8',
+  },
+  form: {
+    width: '100%',
+  },
+  input: {
+    backgroundColor: '#1e293b',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: '#ffffff',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  error: {
+    color: '#ef4444',
+    fontSize: 14,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  button: {
+    backgroundColor: '#2563eb',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  buttonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });

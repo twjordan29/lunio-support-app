@@ -5,7 +5,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { closeConversation, completeConversation, getConversation, getConversationMessages, reopenConversation, sendMessage } from '@/src/api/supportApi';
+import { closeConversation, completeConversation, getConversation, getConversationMessages, markConversationRead, reopenConversation, sendMessage } from '@/src/api/supportApi';
 import { useAuth } from '@/src/auth/AuthContext';
 import { EmptyState } from '@/src/components/EmptyState';
 import { LoadingState } from '@/src/components/LoadingState';
@@ -42,6 +42,7 @@ export function ConversationThreadScreen() {
         .then((messages) => setMessages((prev) => mergeUniqueMessages(prev, messages)))
         .catch(() => setMessages([])),
     ]);
+    markConversationRead(conversationId).catch(() => undefined);
   }, [conversationId]);
 
   useEffect(() => {

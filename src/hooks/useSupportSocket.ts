@@ -7,6 +7,7 @@ export type SupportSocketEvents = {
   onConversationUpdated?: (payload: any) => void;
   onMessageCreated?: (payload: any) => void;
   onConversationStatusChanged?: (payload: any) => void;
+  onConversationRead?: (payload: any) => void;
   onAuthError?: () => void;
 };
 
@@ -30,6 +31,10 @@ export function useSupportSocket(token: string | null, events?: SupportSocketEve
         setLastEvent('conversation:status_changed');
         console.debug('[mobile-socket] status changed received:', payload);
         events?.onConversationStatusChanged?.(payload);
+      },
+      onConversationRead: (payload) => {
+        setLastEvent('conversation:read');
+        events?.onConversationRead?.(payload);
       },
     }, events?.onAuthError);
   }, [token, events]);

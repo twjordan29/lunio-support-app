@@ -16,7 +16,7 @@ import { colors } from '@/src/components/theme';
 import { useNotificationPreferences } from '@/src/hooks/useNotificationPreferences';
 import { useSupportSocket } from '@/src/hooks/useSupportSocket';
 import type { Conversation, ConversationStatus, SupportMessage } from '@/src/types/support';
-import { mergeConversationPreservingDisplay } from '@/src/utils/conversationDisplay';
+import { applyConversationEvent, applyMessageEventToConversation, getActiveUnreadTotal, markConversationReadLocally } from '@/src/utils/conversationEvents';
 import { mergeUniqueConversations } from '@/src/utils/merge';
 
 type FilterType = 'all' | 'open' | 'mine' | 'completed' | 'closed';
@@ -33,6 +33,39 @@ export function ConversationListScreen() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
 
+  const handleIncomingMessage = useCallback((payload: { conversation_id: number; message: SupportMessage }) => {
+    const { message } = payload;
+    const senderId = message.sender_id;
+    if (senderId === user?.id) {
+      setItems((prev) => applyMessageEventToConversation(prev, payload, user?.id));
+      return;
+    }
+
+    setItems((prev) => {
+      const conversation = prev.find((c) => c.id === payload.conversation_id);
+      if (preferences.assignedOnly && !conversation?.assigned_admin_id) return prev;
+      return applyMessageEventToConversation(prev, payload, user?.id);
+    });
+
+    if (preferences.bannersEnabled) {
+      setToastMessage(`New message from ${message.sender_type === 'guest' ? 'guest' : 'customer'}`);
+      setShowToast(true);
+    }
+    if (preferences.vibrationEnabled) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+  }, [preferences.assignedOnly, preferences.bannersEnabled, preferences.vibrationEnabled, user?.id]);
+
+  const handleConversationUpdate = useCallback((payload: { conversation_id?: number; status?: string; conversation?: Conversation }) => {
+    setItems((prev) => applyConversationEvent(prev, payload));
+  }, []);
+
+  const handleConversationRead = useCallback((payload: { conversation_id?: number }) => {
+    const conversationId = Number(payload.conversation_id || 0);
+    if (!conversationId) return;
+    setItems((prev) => markConversationReadLocally(prev, conversationId));
+  }, []);
+
   const { isConnected } = useSupportSocket(token, {
     onAuthError: async () => {
       console.debug('[list] auth error, logging out');
@@ -40,47 +73,12 @@ export function ConversationListScreen() {
       router.replace('/login');
       Alert.alert('Session Expired', 'Your session has expired. Please log in again.');
     },
-    onMessageCreated: (payload: { conversation_id: number; message: SupportMessage }) => {
-      const { conversation_id, message } = payload;
-      const senderId = message.sender_id;
-      if (senderId === user?.id) return;
-
-      const conversation = items.find((c) => c.id === conversation_id);
-      if (preferences.assignedOnly && !conversation?.assigned_admin_id) return;
-
-      setItems((prev) =>
-        prev.map((conv) =>
-          conv.id === conversation_id
-            ? mergeConversationPreservingDisplay(conv, {
-                unread_count: conv.unread_count ? conv.unread_count + 1 : 1,
-                updated_at: message.created_at,
-                latest_message: message.body,
-                last_message_body: message.body,
-                last_message_preview: message.body,
-                last_message_at: message.created_at,
-              })
-            : conv
-        )
-      );
-
-      if (preferences.bannersEnabled) {
-        setToastMessage(`New message from ${message.sender_type === 'guest' ? 'guest' : 'customer'}`);
-        setShowToast(true);
-      }
-      if (preferences.vibrationEnabled) {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }
-    },
+    onConversationUpdated: handleConversationUpdate,
+    onMessageCreated: handleIncomingMessage,
     onConversationStatusChanged: (payload: { conversation_id: number; status: string; conversation: Conversation }) => {
-      const { conversation_id, status, conversation } = payload;
-      setItems((prev) =>
-        prev.map((conv) =>
-          conv.id === conversation_id
-            ? mergeConversationPreservingDisplay(conv, { ...conversation, status: status as ConversationStatus, updated_at: conversation.updated_at || conv.updated_at })
-            : conv
-        )
-      );
+      handleConversationUpdate({ ...payload, conversation: { ...payload.conversation, status: payload.status as ConversationStatus } });
     },
+    onConversationRead: handleConversationRead,
   });
 
   const loadConversations = useCallback(async () => {
@@ -109,6 +107,7 @@ export function ConversationListScreen() {
     closed: items.filter((item) => item.status === 'closed').length,
     all: items.length,
   }), [items]);
+  const activeUnreadTotal = useMemo(() => getActiveUnreadTotal(items), [items]);
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
@@ -168,8 +167,8 @@ export function ConversationListScreen() {
           </View>
           <View style={styles.summaryDivider} />
           <View>
-            <Text style={styles.summaryNumber}>{items.reduce((total, item) => total + Number(item.unread_count || 0), 0)}</Text>
-            <Text style={styles.summaryLabel}>Unread messages</Text>
+            <Text style={styles.summaryNumber}>{activeUnreadTotal}</Text>
+            <Text style={styles.summaryLabel}>Active unread</Text>
           </View>
         </View>
       </View>
@@ -197,7 +196,7 @@ export function ConversationListScreen() {
             conversation={item}
             currentUserId={user?.id}
             onPress={() => {
-              setItems((prev) => prev.map((conv) => conv.id === item.id ? mergeConversationPreservingDisplay(conv, { unread_count: 0 }) : conv));
+              setItems((prev) => markConversationReadLocally(prev, item.id));
               router.push(`/conversations/${item.id}`);
             }}
           />

@@ -6,6 +6,7 @@ export type SupportSocketEvents = {
   onConversationUpdated?: (payload: unknown) => void;
   onMessageCreated?: (payload: unknown) => void;
   onConversationStatusChanged?: (payload: unknown) => void;
+  onConversationRead?: (payload: unknown) => void;
 };
 
 export function createSupportSocket(token: string, events: SupportSocketEvents, onAuthError?: () => void): Socket {
@@ -25,6 +26,8 @@ export function createSupportSocket(token: string, events: SupportSocketEvents, 
   socket.on('message:created', (payload) => events.onMessageCreated?.(payload));
   socket.on('support:conversation:status_changed', (payload) => events.onConversationStatusChanged?.(payload));
   socket.on('conversation:status_changed', (payload) => events.onConversationStatusChanged?.(payload));
+  socket.on('support:conversation:read', (payload) => events.onConversationRead?.(payload));
+  socket.on('conversation:read', (payload) => events.onConversationRead?.(payload));
 
   socket.on('connect_error', (error) => {
     console.debug('[mobile-socket] connect error:', error.message);

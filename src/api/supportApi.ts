@@ -23,6 +23,10 @@ export async function sendMessage(conversationId: number, body: string): Promise
   return data.data.message;
 }
 
+export async function markConversationRead(conversationId: number): Promise<void> {
+  await apiClient.post(`/conversations/${conversationId}/read`);
+}
+
 export async function claimConversation(conversationId: number): Promise<void> {
   await apiClient.post(`/conversations/${conversationId}/claim`);
 }

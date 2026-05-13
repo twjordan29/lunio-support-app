@@ -55,7 +55,9 @@ export function ConversationThreadScreen() {
         .then((messages) => setMessages((prev) => mergeUniqueMessages(prev, messages)))
         .catch(() => setMessages([])),
     ]);
-    markConversationRead(conversationId).catch(() => undefined);
+    markConversationRead(conversationId)
+      .then(() => setConversation((prev) => prev ? mergeConversationPreservingDisplay(prev, { unread_count: 0 }) : prev))
+      .catch(() => undefined);
   }, [conversationId]);
 
   useEffect(() => {
@@ -130,6 +132,9 @@ export function ConversationThreadScreen() {
       const senderId = message.sender_id;
       if (conversation_id === conversationId && senderId !== user?.id) {
         setMessages((prev) => mergeUniqueMessages(prev, [message]));
+        markConversationRead(conversationId)
+          .then(() => setConversation((prev) => prev ? mergeConversationPreservingDisplay(prev, { unread_count: 0 }) : prev))
+          .catch(() => undefined);
         setTimeout(() => flatListRef.current?.scrollToEnd(), 100);
         if (preferences.vibrationEnabled) {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

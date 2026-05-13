@@ -4,7 +4,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import { config } from '@/src/config/env';
 import { setApiAuthToken } from '@/src/api/client';
 import { clearAuthToken, getAuthToken, getUser, saveAuthToken, saveUser } from '@/src/auth/tokenStorage';
-import { setupPushNotifications, unregisterPushTokenFromLunio } from '@/src/services/pushNotifications';
+import { configureNotificationRuntime, setupPushNotifications, unregisterPushTokenFromLunio } from '@/src/services/pushNotifications';
 
 type User = {
   id: number;
@@ -36,6 +36,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setToken(storedToken);
       setUser(storedUser);
       setApiAuthToken(storedToken);
+      if (storedToken) {
+        configureNotificationRuntime()
+          .then(() => setupPushNotifications())
+          .catch((error) => console.error('Failed to refresh push registration:', error));
+      }
       setIsLoading(false);
     })();
   }, []);

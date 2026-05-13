@@ -27,6 +27,11 @@ export async function markConversationRead(conversationId: number): Promise<void
   await apiClient.post(`/conversations/${conversationId}/read`);
 }
 
+export async function getUnreadCount(): Promise<number> {
+  const { data } = await apiClient.get<ApiResponse<{ unread_count: number }>>('/conversations/unread-count');
+  return Number(data.data.unread_count || 0);
+}
+
 export async function claimConversation(conversationId: number): Promise<void> {
   await apiClient.post(`/conversations/${conversationId}/claim`);
 }

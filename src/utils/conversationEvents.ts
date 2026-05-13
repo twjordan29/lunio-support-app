@@ -60,13 +60,14 @@ export function applyMessageEventToConversation(conversations: Conversation[], p
 
   const existing = conversations.find((conversation) => conversation.id === id);
   const isOwnMessage = !!currentUserId && Number(message.sender_id || 0) === currentUserId;
+  const requiresStaffAttention = message.sender_type === 'guest' || message.sender_type === 'user';
   const base: Conversation = existing || {
     id,
     status: 'open',
     unread_count: 0,
   };
   const active = isActiveConversationStatus(base.status);
-  const unread_count = isOwnMessage || !active ? Number(base.unread_count || 0) : Number(base.unread_count || 0) + 1;
+  const unread_count = isOwnMessage || !active || !requiresStaffAttention ? Number(base.unread_count || 0) : Number(base.unread_count || 0) + 1;
 
   return upsertConversation(conversations, mergeConversationPreservingDisplay(base, {
     id,

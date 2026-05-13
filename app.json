@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Lunio Support",
-    "slug": "lunio-support",
+    "slug": "lunio-support-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",

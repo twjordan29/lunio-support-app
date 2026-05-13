@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
+import { router } from 'expo-router';
 import { Platform } from 'react-native';
 
 import { config } from '@/src/config/env';
@@ -11,14 +12,16 @@ export function isRunningInExpoGo(): boolean {
 }
 
 export async function requestNotificationPermission(): Promise<boolean> {
-  const { status } = await Notifications.requestPermissionsAsync();
+  const existing = await Notifications.getPermissionsAsync();
+  const { status } = existing.granted ? existing : await Notifications.requestPermissionsAsync();
   console.log('[push] Notification permission status:', status);
   return status === 'granted';
 }
 
 export async function getExpoPushToken(): Promise<{ token: string | null; error: string | null }> {
   try {
-    const token = await Notifications.getExpoPushTokenAsync();
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId || Constants.easConfig?.projectId;
+    const token = await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined);
     console.log('[push] Expo push token retrieved successfully');
     return { token: token.data, error: null };
   } catch (error: any) {
@@ -149,4 +152,36 @@ export async function setupPushNotifications(): Promise<void> {
       pushRegistrationError: 'Permission denied',
     });
   }
+}
+
+export async function configureNotificationRuntime(): Promise<void> {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('support-messages', {
+      name: 'Support messages',
+      importance: Notifications.AndroidImportance.HIGH,
+      sound: 'default',
+      vibrationPattern: [0, 250, 250, 250],
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+    });
+  }
+}
+
+export function addNotificationResponseRoutingListener(): Notifications.Subscription {
+  return Notifications.addNotificationResponseReceivedListener((response) => {
+    const data = response.notification.request.content.data || {};
+    const conversationId = Number(data.conversation_id || 0);
+    if (data.type === 'support_message' && conversationId > 0) {
+      router.push({ pathname: '/conversations/[id]', params: { id: String(conversationId) } });
+    }
+  });
 }

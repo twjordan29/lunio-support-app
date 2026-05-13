@@ -4,8 +4,15 @@ import React from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider } from '@/src/auth/AuthContext';
+import { addNotificationResponseRoutingListener, configureNotificationRuntime } from '@/src/services/pushNotifications';
 
 export default function RootLayout() {
+  React.useEffect(() => {
+    configureNotificationRuntime().catch((error) => console.error('Failed to configure notifications:', error));
+    const subscription = addNotificationResponseRoutingListener();
+    return () => subscription.remove();
+  }, []);
+
   return (
     <SafeAreaProvider>
       <AuthProvider>

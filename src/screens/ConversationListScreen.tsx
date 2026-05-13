@@ -49,7 +49,7 @@ export function ConversationListScreen() {
       const conversation = prev.find((c) => c.id === payload.conversation_id);
       if (preferences.assignedOnly && !conversation?.assigned_admin_id) return prev;
       if (SUPPORT_APP_DEBUG) {
-        console.debug('[support-app] socket event received', {
+        console.debug('[lunio-support] socket event received', {
           event: 'message:new',
           conversation_id: payload.conversation_id,
           inbox_updated: true,
@@ -71,7 +71,7 @@ export function ConversationListScreen() {
 
   const handleConversationUpdate = useCallback((payload: { conversation_id?: number; status?: string; conversation?: Conversation }) => {
     if (SUPPORT_APP_DEBUG) {
-      console.debug('[support-app] socket event received', {
+      console.debug('[lunio-support] socket event received', {
         event: 'conversation:updated',
         conversation_id: payload.conversation_id || payload.conversation?.id || null,
         inbox_updated: true,
@@ -99,7 +99,7 @@ export function ConversationListScreen() {
     onMessageCreated: handleIncomingMessage,
     onConversationStatusChanged: (payload: { conversation_id: number; status: string; conversation: Conversation }) => {
       if (SUPPORT_APP_DEBUG) {
-        console.debug('[support-app] socket event received', {
+        console.debug('[lunio-support] socket event received', {
           event: 'conversation:status_changed',
           conversation_id: payload.conversation_id,
           inbox_updated: true,

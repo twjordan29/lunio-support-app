@@ -76,7 +76,7 @@ export function ConversationThreadScreen() {
 
   useEffect(() => {
     if (!SUPPORT_APP_DEBUG) return;
-    console.debug('[support-app] thread header display', {
+    console.debug('[lunio-support] thread header display', {
       conversation_id: conversationId,
       displayNameSource,
       displayEmailSource,

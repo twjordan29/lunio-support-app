@@ -60,7 +60,7 @@ export function getConversationDisplayInfo(conversation: Conversation | null | u
   ) || undefined;
 
   if (SUPPORT_APP_DEBUG) {
-    console.debug('[support-app] conversation display info', {
+    console.debug('[lunio-support] conversation display info', {
       conversation_id: conversation?.id || null,
       displayNameSource: nameSource,
       displayEmailSource: emailSource,
